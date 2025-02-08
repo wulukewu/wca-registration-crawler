@@ -9,6 +9,9 @@ from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
+from dotenv import load_dotenv
+load_dotenv()
+
 # Define ANSI escape codes for colors
 class Colors:
     INFO = '\033[94m'  # Blue
@@ -29,6 +32,14 @@ def main():
     # Set up ChromeDriver with options
     options = webdriver.ChromeOptions()
     options.add_argument('--disable-blink-features=AutomationControlled')
+    if no_ui:
+        options.add_argument('--headless')
+        options.add_argument('--disable-gpu')
+        options.add_argument('--no-sandbox')
+        options.add_argument('--disable-dev-shm-usage')
+        options.add_argument('--window-size=1920x1080')
+        options.add_argument('--ignore-certificate-errors')
+        options.add_argument('--allow-insecure-localhost')
 
     # Initialize the ChromeDriver
     driver = webdriver.Chrome(options=options)
@@ -41,6 +52,8 @@ def main():
     driver.get('https://cubing-tw.net/event/')
 
     # Wait for the register to be available
+    if no_ui:
+        start_time = time.time()
     while True:
         try:
             WebDriverWait(driver, .1).until(EC.presence_of_element_located((By.CLASS_NAME, 'btn-secondary')))
@@ -58,6 +71,13 @@ def main():
                 print_info('Retrying in 5 seconds...')
 
         finally:
+            if no_ui:
+                if time.time() - start_time > 5 * 60 * 60:
+                    print_error('Cannot find the register link')
+                    print_error('Exiting the program...')
+                    driver.quit()
+                    return 'Cannot find the register link'
+
             print_info('Refreshing the page...')
             driver.refresh()
 
@@ -74,6 +94,12 @@ def main():
         print_info('Clicked the \'GO!\' button')
 
     except Exception as e:
+        if no_ui:
+            print_error('Cannot find the WCA ID input')
+            print_error('Exiting the program...')
+            driver.quit()
+            return 'Cannot find the WCA ID input'
+
         print_warn('Failed to enter WCA ID')
         print_info('Please enter the WCA ID manually')
         input('Press Enter to continue...')
@@ -104,6 +130,12 @@ def main():
         print_info(f'Selected birthday day: {birthday_day}')
 
     except Exception as e:
+        if no_ui:
+            print_error('Cannot find the birthday input')
+            print_error('Exiting the program...')
+            driver.quit()
+            return 'Cannot find the birthday input'
+
         print_warn('Failed to enter birthday')
         print_info('Please enter the birthday manually')
         input('Press Enter to continue...')
@@ -116,6 +148,12 @@ def main():
         print_info(f'Entered email: {email}')
 
     except Exception as e:
+        if no_ui:
+            print_error('Cannot find the email input')
+            print_error('Exiting the program...')
+            driver.quit()
+            return 'Cannot find the email input'
+
         print_warn('Failed to enter email')
         print_info('Please enter the email manually')
         input('Press Enter to continue...')
@@ -128,7 +166,14 @@ def main():
             if not checkbox.is_selected():
                 checkbox.click()
         print_info('Selected all event options')
+
     except Exception as e:
+        if no_ui:
+            print_error('Cannot find the event options')
+            print_error('Exiting the program...')
+            driver.quit()
+            return 'Cannot find the event options'
+
         print_warn('Failed to select event options')
         print_info('Please select the event options manually')
         input('Press Enter to continue...')
@@ -152,6 +197,12 @@ def main():
         driver.find_element(By.ID, 'BTN_Preview').click()
         print_info('Clicked the \'Preview\' button')
     except Exception as e:
+        if no_ui:
+            print_error('Cannot find the \'Preview\' button')
+            print_error('Exiting the program...')
+            driver.quit()
+            return 'Cannot find the \'Preview\' button'
+
         print_warn('Failed to click the \'Preview\' button')
         print_info('Please click the \'Preview\' button manually')
         input('Press Enter to continue...')
@@ -162,12 +213,22 @@ def main():
         driver.find_element(By.ID, 'BTN_Send').click()
         print_info('Clicked the \'Send\' button')
     except Exception as e:
+        if no_ui:
+            print_error('Cannot find the \'Send\' button')
+            print_error('Exiting the program...')
+            driver.quit()
+            return 'Cannot find the \'Send\' button'
+
         print_warn('Failed to click the \'Send\' button')
         print_info('Please click the \'Send\' button manually')
         input('Press Enter to continue...')
 
     # Quit the ChromeDriver when Ctrl+C is pressed
     print_info('Finished all tasks')
+    if no_ui:
+        driver.quit()
+        return 'Run Successfully'
+
     print_info('(Press Ctrl+C to quit)')
     try:
         while True:
@@ -176,6 +237,11 @@ def main():
         print_info('Ctrl+C pressed')
         print_info('Bye!')
         driver.quit()
+        return 'Run Successfully'
+
+# Check if the script is running in a user interface
+no_ui = os.getenv('NO_UI', 'true').lower() == 'false'
+print_info(f'Not running in user interface: {no_ui}')
 
 # User settings
 try: wca_id = os.environ['WCA_ID']
@@ -192,4 +258,4 @@ try: phone = os.environ['PHONE']
 except: phone = input('(Optional, leave blank if not required)\nEnter your phone number: ').strip()
 
 if __name__ == '__main__':
-    main()
+    return_message = main()
