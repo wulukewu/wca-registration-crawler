@@ -9,6 +9,8 @@ from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
+import discord
+
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -26,6 +28,28 @@ def print_warn(message):
     print(f'{Colors.WARN}[WARN]\t{message}{Colors.END}')
 def print_error(message):
     print(f'{Colors.ERROR}[ERROR]\t{message}{Colors.END}')
+
+# Send a message to a Discord channel
+def dc_send(message, token, guild_id, channel_id):
+    # Set up Discord client with default intents
+    intents = discord.Intents.default()
+    client = discord.Client(intents=intents)
+
+    @client.event
+    async def on_ready():
+        # Print login information
+        print(f'We have logged in as {client.user}')
+        # Get the guild (server) by ID
+        guild = discord.utils.get(client.guilds, id=guild_id)
+        # Get the channel by ID
+        channel = discord.utils.get(guild.channels, id=channel_id)
+        # Send the message to the channel
+        await channel.send(message)
+        # Close the client after sending the message
+        await client.close()
+
+    # Run the Discord client with the provided token
+    client.run(token)
 
 def main():
 
@@ -243,6 +267,12 @@ def main():
 no_ui = os.getenv('NO_UI', 'true').lower() == 'false'
 print_info(f'Not running in user interface: {no_ui}')
 
+# Discord settings
+if no_ui:
+    discord_channel_id = os.getenv('DISCORD_CHANNEL_ID', None)
+    discord_guild_id = os.getenv('DISCORD_GUILD_ID', None)
+    discord_token = os.getenv('DISCORD_TOKEN', None)
+
 # User settings
 try: wca_id = os.environ['WCA_ID']
 except: wca_id = input('Enter your WCA ID: ').strip()
@@ -259,3 +289,12 @@ except: phone = input('(Optional, leave blank if not required)\nEnter your phone
 
 if __name__ == '__main__':
     return_message = main()
+
+    if no_ui:
+        if discord_channel_id and discord_guild_id and discord_token:
+            print_info('Sending Discord notification...')
+            dc_send(return_message, discord_token, discord_guild_id, discord_channel_id)
+            print_info('Discord notification sent')
+        else:
+            print_warn('Discord settings are not provided')
+            print_warn('Skipping Discord notification')
