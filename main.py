@@ -120,6 +120,13 @@ def main():
 
     # Enter the WCA ID
     try:
+        if no_ui:
+            if not wca_id:
+                print_error('WCA ID is not provided')
+                print_error('Exiting the program...')
+                driver.quit()
+                return 'WCA ID is not provided'
+
         WebDriverWait(driver, 3).until(EC.presence_of_element_located((By.ID, 'WCAID_input')))
         driver.find_element(By.ID, 'WCAID_input').clear()
         driver.find_element(By.ID, 'WCAID_input').send_keys(wca_id)
@@ -140,6 +147,13 @@ def main():
 
     # Enter the birthday
     try:
+        if no_ui:
+            if not birthday_year or not birthday_month or not birthday_day:
+                print_error('Birthday is not provided')
+                print_error('Exiting the program...')
+                driver.quit()
+                return 'Birthday is not provided'
+
         WebDriverWait(driver, 3).until(EC.presence_of_element_located((By.ID, 'div_birthday')))
 
         select_year = driver.find_element(By.ID, 'form_birthday_year')
@@ -176,6 +190,13 @@ def main():
 
     # Enter the email
     try:
+        if no_ui:
+            if not email:
+                print_error('Email is not provided')
+                print_error('Exiting the program...')
+                driver.quit()
+                return 'Email is not provided'
+
         WebDriverWait(driver, 3).until(EC.presence_of_element_located((By.ID, 'form_email')))
         driver.find_element(By.ID, 'form_email').clear()
         driver.find_element(By.ID, 'form_email').send_keys(email)
