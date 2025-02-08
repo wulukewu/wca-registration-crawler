@@ -73,7 +73,17 @@ def main():
     print_info(f'ChromeDriver version: {driver.capabilities['chrome']['chromedriverVersion']}')
 
     # Open the URL
-    driver.get('https://cubing-tw.net/event/')
+    if event_url:
+        driver.get(event_url)
+    else:
+        print_error('Event URL is not provided')
+        if no_ui:
+            print_error('Exiting the program...')
+            driver.quit()
+            return 'Event URL is not provided'
+        else:
+            event_url = input('Enter the event URL: ').strip()
+            driver.get(event_url)
 
     # Wait for the register to be available
     if no_ui:
@@ -267,11 +277,16 @@ def main():
 no_ui = os.getenv('NO_UI', 'true').lower() == 'false'
 print_info(f'Not running in user interface: {no_ui}')
 
-# Discord settings
+# Get the settings from environment variables
 if no_ui:
+    # Discord settings
     discord_channel_id = os.getenv('DISCORD_CHANNEL_ID', None)
     discord_guild_id = os.getenv('DISCORD_GUILD_ID', None)
     discord_token = os.getenv('DISCORD_TOKEN', None)
+
+# Event settings
+try: event_url = os.environ['EVENT_URL']
+except: event_url = input('Enter the event URL: ').strip()
 
 # User settings
 try: wca_id = os.environ['WCA_ID']
