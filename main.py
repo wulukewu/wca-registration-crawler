@@ -71,8 +71,8 @@ def main():
     driver = webdriver.Chrome(options=options)
 
     # Print the Chrome version and ChromeDriver version
-    print_info(f'Chrome version: {driver.capabilities['browserVersion']}')
-    print_info(f'ChromeDriver version: {driver.capabilities['chrome']['chromedriverVersion']}')
+    print_info(f"Chrome version: {driver.capabilities['browserVersion']}")
+    print_info(f"ChromeDriver version: {driver.capabilities['chrome']['chromedriverVersion']}")
 
     # Open the URL
     if event_url:
@@ -318,11 +318,13 @@ if no_ui:
     # Discord settings
     discord_channel_id = os.getenv('DISCORD_CHANNEL_ID', None)
     discord_guild_id = os.getenv('DISCORD_GUILD_ID', None)
-    try: discord_guild_id = int(discord_guild_id)
-    except: discord_guild_id = None
+    if discord_guild_id:
+        try: discord_guild_id = int(discord_guild_id)
+        except: pass
     discord_token = os.getenv('DISCORD_TOKEN', None)
-    try: discord_token = int(discord_token)
-    except: discord_token = None
+    if discord_token:
+        try: discord_token = int(discord_token)
+        except: pass
 
 # Event settings
 try: event_url = os.environ['EVENT_URL']
