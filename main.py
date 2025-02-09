@@ -326,15 +326,11 @@ print_info(f'Not running in user interface: {no_ui}')
 # Get the settings from environment variables
 if no_ui:
     # Discord settings
-    discord_channel_id = os.getenv('DISCORD_CHANNEL_ID', None)
-    discord_guild_id = os.getenv('DISCORD_GUILD_ID', None)
-    if discord_guild_id:
-        try: discord_guild_id = int(discord_guild_id)
-        except: pass
     discord_token = os.getenv('DISCORD_TOKEN', None)
-    if discord_token:
-        try: discord_token = int(discord_token)
-        except: pass
+    try: discord_guild_id = int(os.environ['DISCORD_GUILD_ID'])
+    except: discord_guild_id = None
+    try: discord_channel_id = int(os.environ['DISCORD_CHANNEL_ID'])
+    except: discord_channel_id = None
 
 # Event settings
 try: event_url = os.environ['EVENT_URL']
