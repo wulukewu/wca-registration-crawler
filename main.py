@@ -41,8 +41,18 @@ def dc_send(message, token, guild_id, channel_id):
         print(f'We have logged in as {client.user}')
         # Get the guild (server) by ID
         guild = discord.utils.get(client.guilds, id=guild_id)
+        if guild is None:
+            print_error(f'Guild with ID {guild_id} not found')
+            await client.close()
+            return
+
         # Get the channel by ID
         channel = discord.utils.get(guild.channels, id=channel_id)
+        if channel is None:
+            print_error(f'Channel with ID {channel_id} not found in guild {guild_id}')
+            await client.close()
+            return
+
         # Send the message to the channel
         await channel.send(message)
         # Close the client after sending the message
@@ -53,7 +63,7 @@ def dc_send(message, token, guild_id, channel_id):
 
 def main():
     # Declare global variables
-    global event_url, wca_id, birthday_year, birthday_month, birthday_day, email, phone, no_ui, discord_channel_id, discord_guild_id, discord_token
+    global event_url, wca_id, birthday_year, birthday_month, birthday_day, email, phone, no_ui
 
     # Set up ChromeDriver with options
     options = webdriver.ChromeOptions()
