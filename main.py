@@ -76,6 +76,7 @@ def main():
 
     # Open the URL
     if event_url:
+        print_info(f'Opening the event URL: {event_url}')
         driver.get(event_url)
     else:
         print_error('Event URL is not provided')
