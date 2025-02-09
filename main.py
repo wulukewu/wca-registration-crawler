@@ -106,12 +106,21 @@ def main():
     if no_ui:
         start_time = time.time()
     while True:
+        if no_ui:
+            # Check if 5 hours have passed
+            if time.time() - start_time > 5 * 60 * 60:
+                print_error('Cannot find the register link')
+                print_error('Exiting the program...')
+                driver.quit()
+                return 'Cannot find the register link'
         try:
             WebDriverWait(driver, .1).until(EC.presence_of_element_located((By.CLASS_NAME, 'btn-secondary')))
             print_info('Register time is not available yet')
+            print_info('Refreshing the page...')
+            driver.refresh()
+
         except Exception as e:
             print_info('Register time is available')
-            
             try:
                 WebDriverWait(driver, 5).until(EC.presence_of_element_located((By.CLASS_NAME, 'btn-primary')))
                 register_link = driver.find_element(By.CLASS_NAME, 'btn-primary').get_attribute('href')
@@ -120,17 +129,6 @@ def main():
             except Exception as e:
                 print_warn(f'Failed to find register link')
                 print_info('Retrying in 5 seconds...')
-
-        finally:
-            if no_ui:
-                if time.time() - start_time > 5 * 60 * 60:
-                    print_error('Cannot find the register link')
-                    print_error('Exiting the program...')
-                    driver.quit()
-                    return 'Cannot find the register link'
-
-            print_info('Refreshing the page...')
-            driver.refresh()
 
     # Open the register link
     driver.get(register_link)
