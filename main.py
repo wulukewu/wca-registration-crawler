@@ -9,7 +9,7 @@ from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
-import discord
+# import discord
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -30,26 +30,26 @@ def print_error(message):
     print(f'{Colors.ERROR}[ERROR]\t{message}{Colors.END}')
 
 # Send a message to a Discord channel
-def dc_send(message, token, guild_id, channel_id):
-    # Set up Discord client with default intents
-    intents = discord.Intents.default()
-    client = discord.Client(intents=intents)
+# def dc_send(message, token, guild_id, channel_id):
+#     # Set up Discord client with default intents
+#     intents = discord.Intents.default()
+#     client = discord.Client(intents=intents)
 
-    @client.event
-    async def on_ready():
-        # Print login information
-        print(f'We have logged in as {client.user}')
-        # Get the guild (server) by ID
-        guild = discord.utils.get(client.guilds, id=guild_id)
-        # Get the channel by ID
-        channel = discord.utils.get(guild.channels, id=channel_id)
-        # Send the message to the channel
-        await channel.send(message)
-        # Close the client after sending the message
-        await client.close()
+#     @client.event
+#     async def on_ready():
+#         # Print login information
+#         print(f'We have logged in as {client.user}')
+#         # Get the guild (server) by ID
+#         guild = discord.utils.get(client.guilds, id=guild_id)
+#         # Get the channel by ID
+#         channel = discord.utils.get(guild.channels, id=channel_id)
+#         # Send the message to the channel
+#         await channel.send(message)
+#         # Close the client after sending the message
+#         await client.close()
 
-    # Run the Discord client with the provided token
-    client.run(token)
+#     # Run the Discord client with the provided token
+#     client.run(token)
 
 def main():
     # Declare global variables
@@ -76,6 +76,20 @@ def main():
 
     # Open the URL
     if event_url:
+        if not event_url.startswith('https://cubing-tw.net/event/'):
+            print_error('Event URL is not valid')
+            if no_ui:
+                print_error('Exiting the program...')
+                driver.quit()
+                return 'Event URL is not valid'
+            else:
+                event_url = input('Enter a valid event URL: ').strip()
+        elif not event_url.endswith('/registration'):
+            if event_url.endswith('/'):
+                event_url += 'registration'
+            else:
+                event_url += '/registration'
+            print_info(f'Event URL is missing the \'/registration\' part, adding it: {event_url}')
         print_info(f'Opening the event URL: {event_url}')
         driver.get(event_url)
     else:
