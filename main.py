@@ -52,6 +52,8 @@ def dc_send(message, token, guild_id, channel_id):
     client.run(token)
 
 def main():
+    # Declare global variables
+    global event_url, wca_id, birthday_year, birthday_month, birthday_day, email, phone, no_ui
 
     # Set up ChromeDriver with options
     options = webdriver.ChromeOptions()
