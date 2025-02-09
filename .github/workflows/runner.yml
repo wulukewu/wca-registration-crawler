@@ -22,28 +22,16 @@ jobs:
 
       - name: Run Docker container
         run: |
-          event_url=${{ secrets.EVENT_URL || '' }}
-          wca_id=${{ secrets.WCA_ID || '' }}
-          birthday_year=${{ secrets.BIRTHDAY_YEAR || '' }}
-          birthday_month=${{ secrets.BIRTHDAY_MONTH || '' }}
-          birthday_day=${{ secrets.BIRTHDAY_DAY || '' }}
-          email=${{ secrets.EMAIL || '' }}
-          phone=${{ secrets.PHONE || '' }}
-          discord_token=${{ secrets.DISCORD_TOKEN || '' }}
-          discord_guild_id=${{ secrets.DISCORD_GUILD_ID || '' }}
-          discord_channel_id=${{ secrets.DISCORD_CHANNEL_ID || '' }}
-          no_ui=${{ secrets.NO_UI || 'false' }}
-
           docker run --rm \
-            -e EVENT_URL=${event_url} \
-            -e WCA_ID=${wca_id} \
-            -e BIRTHDAY_YEAR=${birthday_year} \
-            -e BIRTHDAY_MONTH=${birthday_month} \
-            -e BIRTHDAY_DAY=${birthday_day} \
-            -e EMAIL=${email} \
-            -e PHONE=${phone} \
-            -e DISCORD_TOKEN=${discord_token} \
-            -e DISCORD_GUILD_ID=${discord_guild_id} \
-            -e DISCORD_CHANNEL_ID=${discord_channel_id} \
-            -e NO_UI=${no_ui} \
+            -e EVENT_URL="${{ secrets.EVENT_URL || '' }}" \
+            -e WCA_ID="${{ secrets.WCA_ID || '' }}" \
+            -e BIRTHDAY_YEAR="${{ secrets.BIRTHDAY_YEAR || '' }}" \
+            -e BIRTHDAY_MONTH="${{ secrets.BIRTHDAY_MONTH || '' }}" \
+            -e BIRTHDAY_DAY="${{ secrets.BIRTHDAY_DAY || '' }}" \
+            -e EMAIL="${{ secrets.EMAIL || '' }}" \
+            -e PHONE="${{ secrets.PHONE || '' }}" \
+            -e DISCORD_TOKEN="${{ secrets.DISCORD_TOKEN || '' }}" \
+            -e DISCORD_GUILD_ID="${{ secrets.DISCORD_GUILD_ID || '' }}" \
+            -e DISCORD_CHANNEL_ID="${{ secrets.DISCORD_CHANNEL_ID || '' }}" \
+            -e NO_UI=false \
             ghcr.io/${{ github.repository }}:latest || echo "Some arguments might be missing"
