@@ -318,7 +318,11 @@ if no_ui:
     # Discord settings
     discord_channel_id = os.getenv('DISCORD_CHANNEL_ID', None)
     discord_guild_id = os.getenv('DISCORD_GUILD_ID', None)
+    try: discord_guild_id = int(discord_guild_id)
+    except: discord_guild_id = None
     discord_token = os.getenv('DISCORD_TOKEN', None)
+    try: discord_token = int(discord_token)
+    except: discord_token = None
 
 # Event settings
 try: event_url = os.environ['EVENT_URL']
