@@ -357,7 +357,9 @@ if __name__ == '__main__':
         if discord_channel_id and discord_guild_id and discord_token:
             print_info('Sending Discord notification...')
             try:
-                dc_send(return_message, discord_token, discord_guild_id, discord_channel_id)
+                current_time = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime(time.time() + 8*3600))
+                message = f'{current_time} (UTC+8) - {return_message}'
+                dc_send(message, discord_token, discord_guild_id, discord_channel_id)
                 print_info('Discord notification sent')
             except Exception as e:
                 print_error('Failed to send Discord notification')
