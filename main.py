@@ -53,7 +53,7 @@ def dc_send(message, token, guild_id, channel_id):
 
 def main():
     # Declare global variables
-    global event_url, wca_id, birthday_year, birthday_month, birthday_day, email, phone, no_ui
+    global event_url, wca_id, birthday_year, birthday_month, birthday_day, email, phone, no_ui, discord_channel_id, discord_guild_id, discord_token
 
     # Set up ChromeDriver with options
     options = webdriver.ChromeOptions()
@@ -350,8 +350,12 @@ if __name__ == '__main__':
     if no_ui:
         if discord_channel_id and discord_guild_id and discord_token:
             print_info('Sending Discord notification...')
-            dc_send(return_message, discord_token, discord_guild_id, discord_channel_id)
-            print_info('Discord notification sent')
+            try:
+                dc_send(return_message, discord_token, discord_guild_id, discord_channel_id)
+                print_info('Discord notification sent')
+            except Exception as e:
+                print_error('Failed to send Discord notification')
+                print_error(e)
         else:
             print_warn('Discord settings are not provided')
             print_warn('Skipping Discord notification')
