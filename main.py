@@ -164,7 +164,7 @@ def main():
             print_error('Cannot find the WCA ID input')
             print_error('Exiting the program...')
             driver.quit()
-            return 'Cannot find the WCA ID input'
+            return f'Cannot find the WCA ID input\n{e}'
 
         print_warn('Failed to enter WCA ID')
         print_info('Please enter the WCA ID manually')
@@ -207,7 +207,7 @@ def main():
             print_error('Cannot find the birthday input')
             print_error('Exiting the program...')
             driver.quit()
-            return 'Cannot find the birthday input'
+            return f'Cannot find the birthday input\n{e}'
 
         print_warn('Failed to enter birthday')
         print_info('Please enter the birthday manually')
@@ -232,7 +232,7 @@ def main():
             print_error('Cannot find the email input')
             print_error('Exiting the program...')
             driver.quit()
-            return 'Cannot find the email input'
+            return f'Cannot find the email input\n{e}'
 
         print_warn('Failed to enter email')
         print_info('Please enter the email manually')
@@ -252,7 +252,7 @@ def main():
             print_error('Cannot find the event options')
             print_error('Exiting the program...')
             driver.quit()
-            return 'Cannot find the event options'
+            return f'Cannot find the event options\n{e}'
 
         print_warn('Failed to select event options')
         print_info('Please select the event options manually')
@@ -281,7 +281,7 @@ def main():
             print_error('Cannot find the \'Preview\' button')
             print_error('Exiting the program...')
             driver.quit()
-            return 'Cannot find the \'Preview\' button'
+            return f'Cannot find the \'Preview\' button\n{e}'
 
         print_warn('Failed to click the \'Preview\' button')
         print_info('Please click the \'Preview\' button manually')
@@ -297,7 +297,7 @@ def main():
             print_error('Cannot find the \'Send\' button')
             print_error('Exiting the program...')
             driver.quit()
-            return 'Cannot find the \'Send\' button'
+            return f'Cannot find the \'Send\' button\n{e}'
 
         print_warn('Failed to click the \'Send\' button')
         print_info('Please click the \'Send\' button manually')
