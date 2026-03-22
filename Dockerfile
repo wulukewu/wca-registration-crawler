@@ -12,9 +12,9 @@ COPY . /app
 
 # Install Google Chrome
 RUN apt-get update && \
-    apt-get install -y wget && \
-    wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | apt-key add - \
-    && echo "deb http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apt/sources.list.d/google.list && \
+    apt-get install -y wget gnupg && \
+    wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | gpg --dearmor -o /usr/share/keyrings/google-chrome.gpg && \
+    echo "deb [arch=amd64 signed-by=/usr/share/keyrings/google-chrome.gpg] http://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google.list && \
     apt-get update && apt-get -y install google-chrome-stable
 
 # Install dependencies
@@ -22,20 +22,7 @@ RUN pip install --upgrade pip && \
     pip install -r requirements.txt && \
     pip install -U selenium
 
-# Accept build arguments for environment variables
-ARG EVENT_URL
-ARG WCA_ID
-ARG BIRTHDAY_YEAR
-ARG BIRTHDAY_MONTH
-ARG BIRTHDAY_DAY
-ARG EMAIL
-ARG PHONE
 
-ARG DISCORD_TOKEN
-ARG DISCORD_GUILD_ID
-ARG DISCORD_CHANNEL_ID
-
-ARG NO_UI
 
 # Run the main.py script
 CMD ["python", "main.py"]
