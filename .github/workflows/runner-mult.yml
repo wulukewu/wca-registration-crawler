@@ -2,6 +2,14 @@ name: WCA Runner Multiple
 
 on:
   workflow_dispatch:
+    inputs:
+      event_url:
+        description: 'Registration Page URL'
+        required: false
+        default: 'https://cubing-tw.net/event'
+
+permissions:
+  actions: write
 
 jobs:
   wca-runner-1:
@@ -23,7 +31,7 @@ jobs:
       - name: Run Docker container
         run: |
           docker run --rm \
-            -e EVENT_URL="${{ secrets.EVENT_URL || '' }}" \
+            -e EVENT_URL="${{ inputs.event_url || secrets.EVENT_URL || '' }}" \
             -e WCA_ID="${{ secrets.WCA_ID || '' }}" \
             -e BIRTHDAY_YEAR="${{ secrets.BIRTHDAY_YEAR || '' }}" \
             -e BIRTHDAY_MONTH="${{ secrets.BIRTHDAY_MONTH || '' }}" \
@@ -35,6 +43,18 @@ jobs:
             -e DISCORD_CHANNEL_ID="${{ secrets.DISCORD_CHANNEL_ID || '' }}" \
             -e NO_UI=false \
             ghcr.io/${{ github.repository }}:latest || echo "Some arguments might be missing"
+
+      - name: Cancel other runners on success
+        if: success()
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            await github.rest.actions.cancelWorkflowRun({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              run_id: context.runId,
+            });
 
   wca-runner-2:
     runs-on: ubuntu-latest
@@ -55,7 +75,7 @@ jobs:
       - name: Run Docker container
         run: |
           docker run --rm \
-            -e EVENT_URL="${{ secrets.EVENT_URL || '' }}" \
+            -e EVENT_URL="${{ inputs.event_url || secrets.EVENT_URL || '' }}" \
             -e WCA_ID="${{ secrets.WCA_ID || '' }}" \
             -e BIRTHDAY_YEAR="${{ secrets.BIRTHDAY_YEAR || '' }}" \
             -e BIRTHDAY_MONTH="${{ secrets.BIRTHDAY_MONTH || '' }}" \
@@ -67,6 +87,18 @@ jobs:
             -e DISCORD_CHANNEL_ID="${{ secrets.DISCORD_CHANNEL_ID || '' }}" \
             -e NO_UI=false \
             ghcr.io/${{ github.repository }}:latest || echo "Some arguments might be missing"
+
+      - name: Cancel other runners on success
+        if: success()
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            await github.rest.actions.cancelWorkflowRun({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              run_id: context.runId,
+            });
 
   wca-runner-3:
     runs-on: ubuntu-latest
@@ -87,7 +119,7 @@ jobs:
       - name: Run Docker container
         run: |
           docker run --rm \
-            -e EVENT_URL="${{ secrets.EVENT_URL || '' }}" \
+            -e EVENT_URL="${{ inputs.event_url || secrets.EVENT_URL || '' }}" \
             -e WCA_ID="${{ secrets.WCA_ID || '' }}" \
             -e BIRTHDAY_YEAR="${{ secrets.BIRTHDAY_YEAR || '' }}" \
             -e BIRTHDAY_MONTH="${{ secrets.BIRTHDAY_MONTH || '' }}" \
@@ -99,6 +131,18 @@ jobs:
             -e DISCORD_CHANNEL_ID="${{ secrets.DISCORD_CHANNEL_ID || '' }}" \
             -e NO_UI=false \
             ghcr.io/${{ github.repository }}:latest || echo "Some arguments might be missing"
+
+      - name: Cancel other runners on success
+        if: success()
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            await github.rest.actions.cancelWorkflowRun({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              run_id: context.runId,
+            });
 
   wca-runner-4:
     runs-on: ubuntu-latest
@@ -119,7 +163,7 @@ jobs:
       - name: Run Docker container
         run: |
           docker run --rm \
-            -e EVENT_URL="${{ secrets.EVENT_URL || '' }}" \
+            -e EVENT_URL="${{ inputs.event_url || secrets.EVENT_URL || '' }}" \
             -e WCA_ID="${{ secrets.WCA_ID || '' }}" \
             -e BIRTHDAY_YEAR="${{ secrets.BIRTHDAY_YEAR || '' }}" \
             -e BIRTHDAY_MONTH="${{ secrets.BIRTHDAY_MONTH || '' }}" \
@@ -131,6 +175,18 @@ jobs:
             -e DISCORD_CHANNEL_ID="${{ secrets.DISCORD_CHANNEL_ID || '' }}" \
             -e NO_UI=false \
             ghcr.io/${{ github.repository }}:latest || echo "Some arguments might be missing"
+
+      - name: Cancel other runners on success
+        if: success()
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            await github.rest.actions.cancelWorkflowRun({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              run_id: context.runId,
+            });
 
   wca-runner-5:
     runs-on: ubuntu-latest
@@ -151,7 +207,7 @@ jobs:
       - name: Run Docker container
         run: |
           docker run --rm \
-            -e EVENT_URL="${{ secrets.EVENT_URL || '' }}" \
+            -e EVENT_URL="${{ inputs.event_url || secrets.EVENT_URL || '' }}" \
             -e WCA_ID="${{ secrets.WCA_ID || '' }}" \
             -e BIRTHDAY_YEAR="${{ secrets.BIRTHDAY_YEAR || '' }}" \
             -e BIRTHDAY_MONTH="${{ secrets.BIRTHDAY_MONTH || '' }}" \
@@ -163,3 +219,15 @@ jobs:
             -e DISCORD_CHANNEL_ID="${{ secrets.DISCORD_CHANNEL_ID || '' }}" \
             -e NO_UI=false \
             ghcr.io/${{ github.repository }}:latest || echo "Some arguments might be missing"
+
+      - name: Cancel other runners on success
+        if: success()
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            await github.rest.actions.cancelWorkflowRun({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              run_id: context.runId,
+            });

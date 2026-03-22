@@ -96,7 +96,7 @@ This repository includes GitHub Actions workflows to automate the registration p
 
     Go to your repository on GitHub, then navigate to "Settings" -> "Security" -> "Secrets and variables" -> "Actions". Add the following secrets:
 
-    *   `EVENT_URL`: The URL of the WCA competition registration page.
+    *   `EVENT_URL` (Optional): The URL of the WCA competition registration page. Can be overridden with the `event_url` input at dispatch time (see below).
     *   `WCA_ID`: Your WCA ID.
     *   `BIRTHDAY_YEAR`: Your birth year (e.g., 2000).
     *   `BIRTHDAY_MONTH`: Your birth month (e.g., 1).
@@ -112,8 +112,10 @@ This repository includes GitHub Actions workflows to automate the registration p
 
     Go to the "Actions" tab in your repository and select the desired workflow (`WCA Runner` or `WCA Runner Multiple`). Click the "Run workflow" button.
 
+    When triggering the workflow manually, a **"Registration Page URL" input** will appear. Enter the competition registration URL here, or leave it blank to use the default (`https://cubing-tw.net/event`). If a value is provided, it will override the `EVENT_URL` secret.
+
     *   `WCA Runner`: Runs a single instance of the registration script.
-    *   `WCA Runner Multiple`: Runs multiple instances of the registration script in parallel.  This is useful for attempting to register multiple people at the same time, however, may violate Cubing-TW's terms of service.  Use with caution.
+    *   `WCA Runner Multiple`: Runs 5 instances of the registration script in parallel. **Once any one runner successfully completes registration, all remaining runners will be automatically cancelled.** This is useful for securing a spot the moment registration opens, however, may violate Cubing-TW's terms of service.  Use with caution.
 
 ## Troubleshooting
 
