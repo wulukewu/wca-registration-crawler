@@ -139,6 +139,8 @@ def main():
             except Exception as e:
                 print_warn(f'Failed to find register link')
                 print_info('Retrying in 5 seconds...')
+                time.sleep(5)
+                driver.refresh()
 
     # Open the register link
     driver.get(register_link)
@@ -152,9 +154,9 @@ def main():
                 driver.quit()
                 return 'WCA ID is not provided'
 
-        WebDriverWait(driver, 3).until(EC.presence_of_element_located((By.ID, 'WCAID_input')))
-        driver.find_element(By.ID, 'WCAID_input').clear()
-        driver.find_element(By.ID, 'WCAID_input').send_keys(wca_id)
+        WebDriverWait(driver, 3).until(EC.presence_of_element_located((By.CSS_SELECTOR, "input[id^='WCAID_input']")))
+        driver.find_element(By.CSS_SELECTOR, "input[id^='WCAID_input']").clear()
+        driver.find_element(By.CSS_SELECTOR, "input[id^='WCAID_input']").send_keys(wca_id)
         print_info(f'Entered WCA ID: {wca_id}')
         driver.find_element(By.ID, 'WCAID_Button').click()
         print_info('Clicked the \'GO!\' button')
