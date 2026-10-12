@@ -1,0 +1,47 @@
+<!doctype html>
+<meta charset="utf-8"><title>Archived Cubing-TW form contract (synthetic)</title>
+<p>This is a local synthetic regression fixture, not a copy of live registration data.</p>
+<input id="WCAID_input" maxlength="10"><input type="hidden" id="form_Profile">
+<button id="WCAID_Button">GO!</button>
+<form id="MainForm" style="display:none">
+  <input id="form_english_name" value="Example Person">
+  <input id="form_country" value="Taiwan">
+  <input name="form_gender" type="radio" checked>
+  <select id="form_birthday_year"><option>2000</option><option>2001</option></select>
+  <select id="form_birthday_month"><option>1</option><option>2</option></select>
+  <select id="form_birthday_day"><option>1</option><option>15</option></select>
+  <input id="form_email">
+  <div id="div_events"><label><input id="form_event_333" type="checkbox">333</label><label><input id="form_event_222" type="checkbox">222</label></div>
+  <button type="button" id="BTN_Preview">Preview</button>
+</form>
+<div id="Preview_Modal" style="display:none"><div id="Preview_main"></div><button id="BTN_Send">Send</button></div>
+<script>
+let WCAID_Check = 0;
+window.submitClicks = 0;
+const id = document.getElementById('WCAID_input');
+id.addEventListener('input', () => {
+    WCAID_Check = 0;
+    id.className = '';
+    document.getElementById('form_Profile').value = '';
+    const typed = id.value;
+    setTimeout(() => {
+        if (id.value !== typed) return;
+        WCAID_Check = 1;
+        document.getElementById('form_Profile').value = 'dummy-profile';
+        id.className = 'is-valid';
+    }, 180);
+});
+document.getElementById('WCAID_Button').onclick = () => {
+    if (!WCAID_Check) return;
+    id.style.display = 'none';
+    document.getElementById('MainForm').style.display = 'block';
+};
+document.getElementById('BTN_Preview').onclick = () => {
+    const email = document.getElementById('form_email');
+    email.classList.toggle('is-invalid', !email.value);
+    if (!email.value) return;
+    document.getElementById('Preview_Modal').style.display = 'block';
+    setTimeout(() => document.getElementById('Preview_main').textContent = 'Registration preview', 180);
+};
+document.getElementById('BTN_Send').onclick = () => { window.submitClicks++; };
+</script>
