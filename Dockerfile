@@ -1,28 +1,16 @@
-# Use the official Python image from the Docker Hub
-FROM python:3.12
+FROM python:3.12-slim-bookworm
 
-# Set environment variables
-ENV PYTHONUNBUFFERED=1
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    CHROME_BIN=/usr/bin/chromium
 
-# Set the working directory in the container
+# Chromium + chromedriver from the SAME Debian release: no runtime driver download.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends chromium chromium-driver ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
-
-# Copy the current directory contents into the container at /app
-COPY . /app
-
-# Install Google Chrome
-RUN apt-get update && \
-    apt-get install -y wget gnupg && \
-    wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | gpg --dearmor -o /usr/share/keyrings/google-chrome.gpg && \
-    echo "deb [arch=amd64 signed-by=/usr/share/keyrings/google-chrome.gpg] http://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google.list && \
-    apt-get update && apt-get -y install google-chrome-stable
-
-# Install dependencies
-RUN pip install --upgrade pip && \
-    pip install -r requirements.txt && \
-    pip install -U selenium
-
-
-
-# Run the main.py script
+COPY requirements.txt ./
+RUN pip install --no-cache-dir -r requirements.txt
+COPY . .
 CMD ["python", "main.py"]
