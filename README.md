@@ -24,7 +24,7 @@ Selenium-based, **opt-in** Cubing-TW competition registration. Defaults to **dry
 ### Recommended timing
 
 - **The day before / 30+ minutes before opening:** confirm the event URL, personal-data Secrets, chosen events, and successful GHCR publish; run a `dry_run=true` when the site's form is accessible.
-- **10–15 minutes before opening:** launch the real workflow (`dry_run=false`, `wait_minutes=30` or `60`). It will wait for the WCA ID form and refresh at most once every five seconds.
+- **10–15 minutes before opening:** launch the real workflow (`dry_run=false`, `wait_minutes=30` or `60`). It will refresh the event registration landing page at most once every five seconds, follow its event-specific registration-start link, then wait for WCA ID validation.
 - **At opening and afterward:** review the Actions/Discord outcome promptly. If `UNKNOWN`, check your registration on the website before trying again. Finish any required payment yourself.
 
 GitHub-hosted runner start-up can be delayed, and web pages/anti-automation measures can change. Neither a dry run nor CI guarantees a place. Follow competition/site rules; one runner deliberately avoids hammering the registration endpoint.
