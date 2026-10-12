@@ -1,0 +1,20 @@
+name: Test registration
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build the same image used for registration
+        run: docker build --tag wca-crawler:test .
+      - name: Offline unit and real-browser regression tests
+        run: docker run --rm wca-crawler:test python -m unittest discover -s tests -v
