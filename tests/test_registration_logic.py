@@ -2,7 +2,7 @@ import unittest
 
 from registration_logic import (
     Config, Outcome, RegistrationError, classify_after_submit, normalize_event_url,
-    parse_events, validate_config,
+    parse_events, registration_select_url, validate_config,
 )
 
 
@@ -25,6 +25,17 @@ class ConfigTests(unittest.TestCase):
                         "https://cubing-tw.net/event/Foo/registration/checked"):
             with self.subTest(invalid=invalid), self.assertRaises(RegistrationError):
                 normalize_event_url(invalid)
+
+    def test_event_specific_registration_start_link(self):
+        base = "https://cubing-tw.net/event/Example2026/registration"
+        self.assertEqual(registration_select_url(base, "select"), base + "/select")
+        self.assertEqual(registration_select_url(base, base + "/select"), base + "/select")
+        for invalid in ("https://evil.example/event/Example2026/registration/select",
+                        "https://cubing-tw.net/event/Another/registration/select",
+                        "https://cubing-tw.net/event/Example2026/payment",
+                        "https://cubing-tw.net/event/Example2026/registration/select?foo=1"):
+            with self.subTest(invalid=invalid):
+                self.assertIsNone(registration_select_url(base, invalid))
 
     def test_config_checks_sensitive_inputs_without_logging(self):
         self.assertTrue(validate_config(config()).endswith("/registration"))
