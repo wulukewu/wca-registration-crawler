@@ -13,7 +13,7 @@ from urllib import request
 from dotenv import load_dotenv
 from registration_logic import (
     Config, Outcome, RegistrationError, classify_after_submit, parse_events,
-    validate_config,
+    validate_config, registration_select_url,
 )
 
 LOG = logging.getLogger("wca")
@@ -81,6 +81,19 @@ class Runner:
             if self._visible("input[id^='WCAID_input']"):
                 LOG.info("stage=OPEN status=READY")
                 return
+            # Archived page: registration landing -> primary link to /registration/select
+            # -> WCA ID selection screen. Never click an unrelated primary button.
+            link = self._registration_start_link(url)
+            if link:
+                LOG.info("stage=OPEN status=SELECT_LINK_AVAILABLE")
+                try:
+                    self.driver.get(link)
+                    self._until("OPEN", "SELECT_PAGE_NOT_READY",
+                                lambda driver: self._visible("input[id^='WCAID_input']"), 15)
+                    LOG.info("stage=OPEN status=READY")
+                    return
+                except Exception as exc:
+                    LOG.warning("stage=OPEN status=SELECT_RETRY error_type=%s", type(exc).__name__)
             remaining = int(deadline - time.monotonic())
             note = remaining // 60
             if note != last_note:
@@ -92,6 +105,15 @@ class Runner:
             except Exception as exc:
                 LOG.warning("stage=OPEN status=RELOAD_RETRY error_type=%s", type(exc).__name__)
         raise RegistrationError("OPEN", "REGISTRATION_NOT_OPEN_BEFORE_TIMEOUT")
+
+    def _registration_start_link(self, event_url: str) -> str | None:
+        for link in self.driver.find_elements("css selector", "a[href*='registration/select']"):
+            if not link.is_displayed() or not link.is_enabled():
+                continue
+            href = registration_select_url(event_url, link.get_attribute("href") or "")
+            if href:
+                return href
+        return None
 
     def identify(self):
         self.stage = "IDENTIFY"

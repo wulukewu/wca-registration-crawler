@@ -4,7 +4,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from enum import Enum
 import re
-from urllib.parse import urlsplit, urlunsplit
+from urllib.parse import urljoin, urlsplit, urlunsplit
 
 
 class Outcome(str, Enum):
@@ -59,6 +59,23 @@ def normalize_event_url(raw: str) -> str:
     except (ValueError, AttributeError):
         raise RegistrationError("CONFIG", "INVALID_EVENT_URL") from None
     return urlunsplit(("https", "cubing-tw.net", f"/event/{segments[1]}/registration", "", ""))
+
+
+
+def registration_select_url(event_url: str, href: str) -> str | None:
+    """Only follow the event's own /registration/select link, never generic buttons."""
+    try:
+        target = normalize_event_url(event_url)
+        url = urljoin(target + "/", href)
+        part = urlsplit(url)
+        if (part.scheme == "https" and part.hostname in {"cubing-tw.net", "www.cubing-tw.net"}
+                and not part.username and not part.password and not part.port
+                and not part.query and not part.fragment
+                and part.path == urlsplit(target).path + "/select"):
+            return url
+    except (RegistrationError, ValueError, AttributeError):
+        pass
+    return None
 
 
 def parse_events(raw: str) -> set[str] | None:
