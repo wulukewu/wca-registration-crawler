@@ -4,42 +4,94 @@ on:
   workflow_dispatch:
     inputs:
       event_url:
-        description: 'Registration Page URL'
-        required: false
-        default: 'https://cubing-tw.net/event'
+        description: 'Specific Cubing-TW competition URL (/event/<event>)'
+        type: string
+        required: true
+      events:
+        description: 'Comma-separated event IDs (333,222) or all'
+        type: string
+        required: true
+        default: 'all'
+      dry_run:
+        description: 'Test through preview only; never submit'
+        type: boolean
+        default: true
+        required: true
+      wait_minutes:
+        description: 'Stop waiting for registration to open after'
+        type: choice
+        options: ['15', '30', '60']
+        default: '60'
+        required: true
 
 permissions:
-  actions: write
+  contents: read
+  packages: read
+
+concurrency:
+  group: wca-registration
+  cancel-in-progress: false
 
 jobs:
-  wca-runner:
+  register:
     runs-on: ubuntu-latest
+    timeout-minutes: 80
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-
-      - name: Log in to the Container registry
-        uses: docker/login-action@v2
+      - uses: actions/checkout@v4
+      - uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
-          password: ${{ secrets.PAT }}
-
-      - name: Pull Docker image
-        run: docker pull ghcr.io/${{ github.repository }}:latest || echo "No image found"
-
-      - name: Run Docker container
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Pull image built from the exact selected commit
+        env:
+          IMAGE: ghcr.io/${{ github.repository }}:sha-${{ github.sha }}
+        run: docker pull "$IMAGE"
+      - name: Run crawler
+        env:
+          EVENT_URL: ${{ inputs.event_url }}
+          EVENTS: ${{ inputs.events }}
+          DRY_RUN: ${{ inputs.dry_run }}
+          WAIT_MINUTES: ${{ inputs.wait_minutes }}
+          HEADLESS: 'true'
+          WCA_ID: ${{ secrets.WCA_ID }}
+          BIRTHDAY_YEAR: ${{ secrets.BIRTHDAY_YEAR }}
+          BIRTHDAY_MONTH: ${{ secrets.BIRTHDAY_MONTH }}
+          BIRTHDAY_DAY: ${{ secrets.BIRTHDAY_DAY }}
+          EMAIL: ${{ secrets.EMAIL }}
+          PHONE: ${{ secrets.PHONE }}
+          DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
+          DISCORD_CHANNEL_ID: ${{ secrets.DISCORD_CHANNEL_ID }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_SERVER_URL: ${{ github.server_url }}
+          IMAGE: ghcr.io/${{ github.repository }}:sha-${{ github.sha }}
         run: |
+          mkdir -p "$RUNNER_TEMP/wca-result"
           docker run --rm \
-            -e EVENT_URL="${{ inputs.event_url || secrets.EVENT_URL || '' }}" \
-            -e WCA_ID="${{ secrets.WCA_ID || '' }}" \
-            -e BIRTHDAY_YEAR="${{ secrets.BIRTHDAY_YEAR || '' }}" \
-            -e BIRTHDAY_MONTH="${{ secrets.BIRTHDAY_MONTH || '' }}" \
-            -e BIRTHDAY_DAY="${{ secrets.BIRTHDAY_DAY || '' }}" \
-            -e EMAIL="${{ secrets.EMAIL || '' }}" \
-            -e PHONE="${{ secrets.PHONE || '' }}" \
-            -e DISCORD_TOKEN="${{ secrets.DISCORD_TOKEN || '' }}" \
-            -e DISCORD_GUILD_ID="${{ secrets.DISCORD_GUILD_ID || '' }}" \
-            -e DISCORD_CHANNEL_ID="${{ secrets.DISCORD_CHANNEL_ID || '' }}" \
-            -e NO_UI=false \
-            ghcr.io/${{ github.repository }}:latest || echo "Some arguments might be missing"
+            -v "$RUNNER_TEMP/wca-result:/result" \
+            -e RESULT_PATH=/result/run-result.json \
+            -e EVENT_URL -e EVENTS -e DRY_RUN -e WAIT_MINUTES -e HEADLESS \
+            -e WCA_ID -e BIRTHDAY_YEAR -e BIRTHDAY_MONTH -e BIRTHDAY_DAY \
+            -e EMAIL -e PHONE -e DISCORD_TOKEN -e DISCORD_CHANNEL_ID \
+            -e GITHUB_RUN_ID -e GITHUB_REPOSITORY -e GITHUB_SERVER_URL \
+            "$IMAGE"
+      - name: Publish diagnostic result
+        if: always()
+        run: |
+          if test -f "$RUNNER_TEMP/wca-result/run-result.json"; then
+            cp "$RUNNER_TEMP/wca-result/run-result.json" ./run-result.json
+            echo '### WCA runner outcome' >> "$GITHUB_STEP_SUMMARY"
+            echo '```json' >> "$GITHUB_STEP_SUMMARY"
+            cat ./run-result.json >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo 'Crawler did not start or did not produce a result (infrastructure failure).' >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: registration-diagnostics
+          path: run-result.json
+          if-no-files-found: ignore
+          retention-days: 7
