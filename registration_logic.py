@@ -13,6 +13,7 @@ class Outcome(str, Enum):
     CONFIRMED = "CONFIRMED"
     FAILED = "FAILED"
     UNKNOWN = "UNKNOWN"
+    NOT_SELECTED = "NOT_SELECTED"
 
 
 class RegistrationError(Exception):
@@ -36,6 +37,7 @@ class Config:
     wait_minutes: int = 60
     poll_seconds: float = 5.0
     headless: bool = True
+    runner_count: int = 1
 
 
 EVENT_ALIASES = {
@@ -101,7 +103,7 @@ def validate_config(c: Config) -> str:
         raise RegistrationError("CONFIG", "INVALID_BIRTHDAY") from None
     if not re.fullmatch(r"[^\s@]+@[^\s@]+\.[^\s@]+", c.email):
         raise RegistrationError("CONFIG", "INVALID_EMAIL")
-    if not (1 <= c.wait_minutes <= 300) or not (2 <= c.poll_seconds <= 60):
+    if not (1 <= c.wait_minutes <= 300) or not (2 <= c.poll_seconds <= 60) or not (1 <= c.runner_count <= 5):
         raise RegistrationError("CONFIG", "INVALID_WAIT_SETTINGS")
     parse_events(c.events)
     return url

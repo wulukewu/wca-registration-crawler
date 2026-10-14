@@ -2,7 +2,7 @@
 
 A Selenium-based helper for **Cubing-TW competition registration**. It runs from GitHub Actions or locally, waits for the registration window, fills the form, and (only with explicit opt-in) submits **once**.
 
-> **Important:** This is an unofficial tool. The default is `dry_run=true` (no submission). It supports **one runner**, not a parallel/multi-runner race. The competition website's rules always take precedence; a successful CI run or preview is **not** proof of a confirmed registration.
+> **Important:** This is an unofficial tool. The default is `dry_run=true` (no submission). It supports **1–5 concurrent readiness workers**, coordinated with an atomic GitHub claim so at most one proceeds to the personal-data form and Send. More workers can increase site requests and may violate competition rules; use one when multiple sessions are prohibited. The competition website's rules always take precedence; a successful CI run or preview is **not** proof of a confirmed registration.
 
 ## 快速開始｜Run with GitHub Actions
 
@@ -14,6 +14,7 @@ A Selenium-based helper for **Cubing-TW competition registration**. It runs from
    | --- | --- | --- |
    | `event_url` | 特定比賽網址，例如 `https://cubing-tw.net/event/2026TaoyuanAirportCubeDay/registration` | 必填 |
    | `events` | 比賽**項目**代碼：`333`、`333,222,444` 或 `all` | `all` |
+   | `runner_count` | `1`～`5` 台平行等待節點；**只有一台取得提交權**，不會各自送出 | `1` |
    | `dry_run` | `true`（勾選）：填表到預覽，但**不送出**；`false`（取消勾選）：真的送出 | `true` |
    | `wait_minutes` | 最多等待開放的分鐘數：`15`、`30`、`60`、`120`、`180`、`240`、`300` | `60` |
 
@@ -57,17 +58,21 @@ A Selenium-based helper for **Cubing-TW competition registration**. It runs from
 
 ### 等待時間、Runner 與成功後行為
 
-- 程式在等待開放時大約**每 5 秒**檢查一次，直到可以進入報名表，或到達 `wait_minutes` 限制。
+- 單一 Runner 在等待開放時大約**每 5 秒**檢查一次；多 Runner 會依數量延長各自檢查間隔，直到開放或到達 `wait_minutes` 限制。
 - 可提早數小時啟動：例如 20:00 開放、16:00 執行，可選 `300`。等待時間是**最多等多久**，不是固定延遲，也不是報名成功後還會持續執行的時間。
 - 此版本整個 GitHub Actions Job 的 `timeout-minutes` 為 **350 分鐘**（少於 GitHub-hosted runner 的六小時限制）。請保留啟動與填表的緩衝；Actions 開始排程可能有延遲。
-- **沒有 `runner_count`**；目前只有單一 Runner，並以 workflow concurrency 防止同時執行多個獨立報名作業。
+- `runner_count` 可選 `1`～`5`，每一台是獨立 GitHub-hosted Runner。多台只負責偵測開放；**第一台偵測到並成功建立 GitHub 原子提交鎖的 Runner** 才能繼續使用 WCA ID、填表和送出，其他 Runner 回報 `NOT_SELECTED` 即停止。
+- 使用 `2`～`5` 時，每台會把輪詢間隔增為 `5 × runner_count` 秒（最多 25 秒），避免隨著 Runner 數量線性加快向網站請求；實際啟動時間不同，不保證各次請求平均分散。
+- 若提交權持有者在送出前失敗，**不會自動轉移提交權或由其他 Runner 重試**，因為無法一律判斷是否已送出。GitHub 在所有 Runner 結束後會嘗試清除這次執行專屬的鎖。
+- GitHub Actions 的 concurrency 也避免兩次**不同的 workflow run** 同時執行，但 queued/重跑仍請人工確認是否已報名。
 - 報名送出時**最多點擊一次 Send**。觀察到付款階段會結束；送出後結果不明也會結束，**不會自動重送**。但目前**沒有**在送出前自動查詢「你是否早就報名成功」的功能。
-- 不要為了增加機率而頻繁重新觸發：有些賽事明確警告多分頁／重複報名可能被視為異常操作。
+- **網站規範優先**：有些賽事明確警告多分頁／重複報名可能被視為異常操作，即使這裡只有一台會送出，其他平行瀏覽器也可能被認定為多工作階段。對此類比賽請設 `runner_count=1`，不要為了增加機率而頻繁重跑。
 
 ### 結果怎麼看？｜Outcomes
 
 | `outcome` | 意義 | Exit code | 你的下一步 |
 | --- | --- | --- | --- |
+| `NOT_SELECTED` | 另一台 Runner 已取得本次提交鎖；這台沒有填表或送出 | 0 | 查看取得鎖的 Runner 最終結果 |
 | `DRY_RUN_READY` | 已填表並到達預覽，**沒有送出** | 0 | 正式報名須另行以 `dry_run=false` 執行 |
 | `SUBMITTED_PAYMENT_PENDING` | 偵測到舊版網站結構相符的付款轉跳／交易表單；**不代表完成付款或最終錄取** | 0 | 去官方網站查報名名單並付款 |
 | `UNKNOWN` | 點擊 Send 後無法證明是否已送出 | 1 | **先查官方報名狀態，切勿盲目重跑** |
@@ -115,10 +120,11 @@ EVENTS=333
 DRY_RUN=true
 HEADLESS=true
 WAIT_MINUTES=60
+RUNNER_COUNT=1
 POLL_SECONDS=5
 ```
 
-然後執行 `python main.py`。Repository 另附 `Dockerfile`，GitHub Actions 會在合併到 `main` 後建置對應 SHA 的 GHCR image。
+然後執行 `python main.py`。Repository 另附 `Dockerfile`，GitHub Actions 會在合併到 `main` 後建置對應 SHA 的 GHCR image。多 Runner 需要 GitHub Actions `GITHUB_TOKEN` 具有 `contents: write` 權限以建立執行專用的原子鎖，已由 workflow 的 job 權限設定處理，不必新增 Secret。
 
 ## 技術邊界與參考資料｜Limitations
 

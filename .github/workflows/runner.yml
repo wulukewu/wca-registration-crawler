@@ -12,6 +12,12 @@ on:
         type: string
         required: true
         default: 'all'
+      runner_count:
+        description: 'Readiness workers (only one is allowed to submit)'
+        type: choice
+        options: ['1', '2', '3', '4', '5']
+        default: '1'
+        required: true
       dry_run:
         description: 'Test through preview only; never submit'
         type: boolean
@@ -33,8 +39,30 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  register:
+  prepare:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      runners: ${{ steps.select.outputs.runners }}
+    steps:
+      - name: Build requested worker matrix
+        id: select
+        env:
+          COUNT: ${{ inputs.runner_count }}
+        run: |
+          case "$COUNT" in 1|2|3|4|5) ;; *) echo 'Invalid runner count' >&2; exit 1 ;; esac
+          echo "runners=[$(seq -s, 1 "$COUNT")]" >> "$GITHUB_OUTPUT"
+
+  register:
+    needs: prepare
+    strategy:
+      fail-fast: false
+      matrix:
+        runner_index: ${{ fromJSON(needs.prepare.outputs.runners) }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # Required only for an atomic, run-scoped registration claim
+      packages: read
     timeout-minutes: 350
     steps:
       - uses: actions/checkout@v4
@@ -54,6 +82,10 @@ jobs:
           DRY_RUN: ${{ inputs.dry_run }}
           WAIT_MINUTES: ${{ inputs.wait_minutes }}
           HEADLESS: 'true'
+          RUNNER_COUNT: ${{ inputs.runner_count }}
+          RUNNER_INDEX: ${{ matrix.runner_index }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_SHA: ${{ github.sha }}
           WCA_ID: ${{ secrets.WCA_ID }}
           BIRTHDAY_YEAR: ${{ secrets.BIRTHDAY_YEAR }}
           BIRTHDAY_MONTH: ${{ secrets.BIRTHDAY_MONTH }}
@@ -72,6 +104,7 @@ jobs:
             -v "$RUNNER_TEMP/wca-result:/result" \
             -e RESULT_PATH=/result/run-result.json \
             -e EVENT_URL -e EVENTS -e DRY_RUN -e WAIT_MINUTES -e HEADLESS \
+            -e RUNNER_COUNT -e RUNNER_INDEX -e GITHUB_TOKEN -e GITHUB_SHA \
             -e WCA_ID -e BIRTHDAY_YEAR -e BIRTHDAY_MONTH -e BIRTHDAY_DAY \
             -e EMAIL -e PHONE -e DISCORD_TOKEN -e DISCORD_CHANNEL_ID \
             -e GITHUB_RUN_ID -e GITHUB_REPOSITORY -e GITHUB_SERVER_URL \
@@ -91,7 +124,28 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: registration-diagnostics
+          name: registration-diagnostics-${{ matrix.runner_index }}
           path: run-result.json
           if-no-files-found: ignore
           retention-days: 7
+
+  cleanup:
+    needs: [prepare, register]
+    if: ${{ always() && needs.prepare.result == 'success' && inputs.runner_count != '1' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - name: Remove run-scoped submission claim
+        uses: actions/github-script@v7
+        with:
+          script: |
+            try {
+              await github.rest.git.deleteRef({
+                owner: context.repo.owner, repo: context.repo.repo,
+                ref: 'heads/wca-registration-claim-' + context.runId
+              });
+            } catch (error) {
+              if (error.status !== 404) throw error;
+            }
