@@ -11,7 +11,7 @@ from pathlib import Path
 from urllib import request
 
 from dotenv import load_dotenv
-from registration_claim import claim_registration
+from registration_claim import claim_registration, claim_already_exists
 from registration_logic import (
     Config, Outcome, RegistrationError, classify_after_submit, parse_events,
     validate_config, registration_select_url,
@@ -79,7 +79,13 @@ class Runner:
             LOG.warning("stage=OPEN status=NAVIGATION_RETRY error_type=%s", type(exc).__name__)
         deadline = time.monotonic() + self.cfg.wait_minutes * 60
         last_note = -1
+        next_claim_check = time.monotonic() + 60
         while time.monotonic() < deadline:
+            if self.cfg.runner_count > 1 and time.monotonic() >= next_claim_check:
+                if claim_already_exists(self.cfg.runner_count):
+                    LOG.info("stage=OPEN status=OTHER_WORKER_CLAIMED")
+                    return False
+                next_claim_check = time.monotonic() + 60
             if self._visible("input[id^='WCAID_input']"):
                 LOG.info("stage=OPEN status=READY")
                 return
@@ -250,7 +256,8 @@ class Runner:
             return Outcome.UNKNOWN  # submission might have succeeded; never blindly retry
 
     def run(self, url: str) -> Outcome:
-        self.await_open(url)
+        if self.await_open(url) is False:
+            return Outcome.NOT_SELECTED
         self.stage = "COORDINATE"
         if not claim_registration(self.cfg.runner_count):
             LOG.info("stage=COORDINATE status=NOT_SELECTED")
