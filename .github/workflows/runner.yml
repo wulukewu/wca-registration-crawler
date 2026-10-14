@@ -60,6 +60,11 @@ jobs:
           DISCORD_CHANNEL_ID: ${{ secrets.DISCORD_CHANNEL_ID }}
           GITHUB_REPOSITORY: ${{ github.repository }}
           GITHUB_RUN_ID: ${{ github.run_id }}
+          EVENT_URL: ${{ inputs.event_url }}
+          EVENTS: ${{ inputs.events }}
+          DRY_RUN: ${{ inputs.dry_run }}
+          RUNNER_COUNT: ${{ inputs.runner_count }}
+          WAIT_MINUTES: ${{ inputs.wait_minutes }}
         run: |
           python3 notification_report.py start
 
