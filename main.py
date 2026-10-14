@@ -11,6 +11,7 @@ from pathlib import Path
 from urllib import request
 
 from dotenv import load_dotenv
+from registration_claim import claim_registration
 from registration_logic import (
     Config, Outcome, RegistrationError, classify_after_submit, parse_events,
     validate_config, registration_select_url,
@@ -32,7 +33,8 @@ def load_config() -> Config:
     load_dotenv()
     try:
         wait_minutes = int(os.getenv("WAIT_MINUTES", "60"))
-        poll_seconds = float(os.getenv("POLL_SECONDS", "5"))
+        runner_count = int(os.getenv("RUNNER_COUNT", "1"))
+        poll_seconds = float(os.getenv("POLL_SECONDS", str(5 * runner_count)))
     except ValueError:
         raise RegistrationError("CONFIG", "INVALID_WAIT_SETTINGS") from None
     return Config(
@@ -46,7 +48,7 @@ def load_config() -> Config:
         events=os.getenv("EVENTS", "all"),
         dry_run=env_bool("DRY_RUN", True),
         wait_minutes=wait_minutes, poll_seconds=poll_seconds,
-        headless=env_bool("HEADLESS", True),
+        headless=env_bool("HEADLESS", True), runner_count=runner_count,
     )
 
 
@@ -249,6 +251,11 @@ class Runner:
 
     def run(self, url: str) -> Outcome:
         self.await_open(url)
+        self.stage = "COORDINATE"
+        if not claim_registration(self.cfg.runner_count):
+            LOG.info("stage=COORDINATE status=NOT_SELECTED")
+            return Outcome.NOT_SELECTED
+        LOG.info("stage=COORDINATE status=CLAIMED")
         self.identify()
         self.fill()
         self.preview()
@@ -337,8 +344,9 @@ def main() -> int:
         LOG.info("outcome=%s stage=%s code=%s", outcome.value, stage, code)
         write_summary(outcome, stage, code, started)
         run_url = f"{os.getenv('GITHUB_SERVER_URL', 'https://github.com')}/{os.getenv('GITHUB_REPOSITORY', '')}/actions/runs/{os.getenv('GITHUB_RUN_ID', '')}"
-        send_discord(outcome, code, run_url)
-    return 0 if outcome in (Outcome.DRY_RUN_READY, Outcome.SUBMITTED_PAYMENT_PENDING, Outcome.CONFIRMED) else 1
+        if outcome != Outcome.NOT_SELECTED:
+            send_discord(outcome, code, run_url)
+    return 0 if outcome in (Outcome.DRY_RUN_READY, Outcome.SUBMITTED_PAYMENT_PENDING, Outcome.CONFIRMED, Outcome.NOT_SELECTED) else 1
 
 
 if __name__ == "__main__":
