@@ -105,10 +105,13 @@ A Selenium-based helper for **Cubing-TW competition registration**. It runs from
 
 ## Discord 通知與獨立測試
 
-提供 `DISCORD_TOKEN`（**Bot Token**，不是 Webhook URL、Client Secret 或 Discord 帳號 Token）和 `DISCORD_CHANNEL_ID`（文字頻道 ID），兩個 Secrets 都必須有值。Bot 必須已加入頻道所在伺服器，且在目標頻道具有 **View Channel** 和 **Send Messages** 權限。
+提供 `DISCORD_TOKEN`（**Bot Token**，不是 Webhook URL、Client Secret 或 Discord 帳號 Token）和 `DISCORD_CHANNEL_ID`（文字頻道 ID），兩個 Secrets 都必須有值。Bot 必須已加入頻道所在伺服器，且在目標頻道具有 **View Channel**、**Send Messages** 和 **Embed Links** 權限。
 
-- **開始執行**：新版 `WCA Runner` 在 `prepare` 階段嘗試發送一次 `STARTED`，表示已啟動監控，**不是報名成功**。多 Runner 也只發一次。
-- **執行結束**：真正執行報名的 Runner 傳送 `DRY_RUN_READY`、`FAILED`、`UNKNOWN` 或 `SUBMITTED_PAYMENT_PENDING` 等結果；沒取得提交權的 `NOT_SELECTED` Worker 不會額外通知。
+- **啟動通知（1 則）**：由 `prepare` 發出藍色 Embed，顯示比賽、報名項目、Dry Run／正式模式、Runner 數量和最長等待時間。**監控啟動不代表報名成功**。
+- **最終通知（1 則）**：等所有 Runner 結束並完成 cleanup，再下載各台的診斷 Artifact，彙整成一張 Discord Embed。即使 5 台都等待逾時，也**只會傳 1 則**。個別 Runner 不再發 Discord 通知。
+- **結果語意**：紫色＝`DRY_RUN_READY`，僅到預覽；橘色＝`SUBMITTED_PAYMENT_PENDING`，已到付款階段但**尚未證明付款／錄取**；紅色＝`FAILED`，需查看卡住階段；深紅色＝`UNKNOWN`，**可能已送出，先查官方名單，禁止盲目重跑**；灰色＝等待逾時；多台資料不完整則明確提醒。
+- **內容**：比賽、項目、模式、Runner 診斷數量、卡住階段、主要 Runner 編號、錯誤碼，以及 GitHub Actions 與官方報名頁連結；Discord 原生時間戳顯示發送時間。**不含 WCA ID、姓名、生日、Email、電話與 Bot Token**。
+- **限制**：工作遭 GitHub 直接取消時，後續彙整通知可能無法執行；仍請以 Actions 與主辦方網站確認。
 - **獨立測試**：進入 **Actions → Test Discord notification → Run workflow**，選 `main` 執行。此工作**只傳測試訊息，不啟動報名爬蟲、也不需等待報名開放**；可在正式使用前檢查 Bot 設定。
 - 若通知失敗，請查看對應工作中的 `notification=FAILED`、`http_status` 和 `discord_code`。程式不會記錄 Token、Channel ID 或 Discord 錯誤訊息原文，也不會因通知失敗而改動原本的報名結果。
 
