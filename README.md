@@ -144,6 +144,14 @@ POLL_SECONDS=5
 
 然後執行 `python main.py`。Repository 另附 `Dockerfile`，GitHub Actions 會在合併到 `main` 後建置對應 SHA 的 GHCR image。多 Runner 需要 GitHub Actions `GITHUB_TOKEN` 具有 `contents: write` 權限以建立執行專用的原子鎖，已由 workflow 的 job 權限設定處理，不必新增 Secret。
 
+## 2026/10/14 實站驗證結果
+
+[Taoyuan Airport Cube Day 2026 執行紀錄](../../actions/runs/38559774303) 顯示：20:00:03 偵測到開放，20:00:04 單一 Runner 取得提交權，20:00:05 WCA ID 驗證通過；但填表時遇到 `ElementClickInterceptedException`，**未進入 Preview 或 Send**。
+
+本版針對此情況，先把 checkbox 捲到視窗中央，再嘗試標準 Selenium 點擊；若被對應項目 label 遮擋，則改點與其綁定的可見 label，並驗證最終選取狀態。若仍被其他介面遮擋，**不會透過強制 JavaScript 點擊繞過驗證或介面遮罩**，而是回報明確失敗碼。已新增模擬被 label 遮擋的 Chromium regression test。
+
+此修改尚未在下一次真實報名中完成端到端驗證，且不可在已報名的賽事盲目重跑，避免重複報名。
+
 ## 技術邊界與參考資料｜Limitations
 
 - 支援 **Cubing-TW** 的既有報名流程，不支援直接在 WCA 官方網站報名，也不保證主辦方沒有更改 DOM、AJAX 或驗證方式。

@@ -197,9 +197,51 @@ class Runner:
         if requested is not None and not requested.issubset(available):
             raise RegistrationError("FILL", "REQUESTED_EVENT_NOT_AVAILABLE")
         selected = requested if requested is not None else set(available)
-        for code, checkbox in available.items():
-            if checkbox.is_selected() != (code in selected):
+
+        def set_event_checked(code: str, checked: bool) -> None:
+            # Real Cubing-TW forms use a Bootstrap checkbox with an associated
+            # <label for="...">. Selenium may report that the visible label
+            # intercepts clicks intended for the checkbox itself.
+            from selenium.common.exceptions import ElementClickInterceptedException
+
+            checkbox = available[code]
+            if checkbox.is_selected() == checked:
+                return
+
+            d.execute_script(
+                "arguments[0].scrollIntoView({block: 'center', inline: 'nearest'});",
+                checkbox,
+            )
+            try:
                 checkbox.click()
+            except ElementClickInterceptedException:
+                # An intercepted Selenium click might or might not have
+                # changed state; inspect it before attempting another click.
+                LOG.warning("stage=FILL code=EVENT_INPUT_INTERCEPTED event_code=%s", code)
+                if checkbox.is_selected() != checked:
+                    labels = d.find_elements(
+                        "css selector", f"#div_events label[for='form_event_{code}']"
+                    )
+                    label = next(
+                        (item for item in labels if item.is_displayed() and item.is_enabled()),
+                        None,
+                    )
+                    if label is None:
+                        raise RegistrationError("FILL", "EVENT_LABEL_NOT_CLICKABLE")
+                    try:
+                        label.click()
+                    except ElementClickInterceptedException:
+                        # Do not use a forced JavaScript click to bypass overlays,
+                        # which may be a real server-side or validation gate.
+                        raise RegistrationError("FILL", "EVENT_LABEL_CLICK_INTERCEPTED") from None
+
+            self._until(
+                "FILL", "EVENT_SELECTION_NOT_APPLIED",
+                lambda driver: checkbox.is_selected() == checked, 5,
+            )
+
+        for code in sorted(available):
+            set_event_checked(code, code in selected)
         if not selected or any(available[code].is_selected() is False for code in selected):
             raise RegistrationError("FILL", "EVENT_SELECTION_FAILED")
 
