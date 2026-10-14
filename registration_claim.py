@@ -48,7 +48,7 @@ def claim_registration(runner_count: int) -> bool:
         # A 422 can indicate either an existing ref or invalid input.
         # Only treat it as a lost race if the common ref actually exists.
         try:
-            with request.urlopen(request.Request(endpoint + "/heads/wca-registration-claim-" + run_id,
+            with request.urlopen(request.Request(endpoint.replace("/git/refs", "/git/ref") + "/heads/wca-registration-claim-" + run_id,
                                                 headers=headers, method="GET"), timeout=12) as response:
                 if response.status == 200:
                     return False
