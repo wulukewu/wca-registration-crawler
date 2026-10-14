@@ -376,7 +376,7 @@ def main() -> int:
         LOG.info("outcome=%s stage=%s code=%s", outcome.value, stage, code)
         write_summary(outcome, stage, code, started)
         run_url = f"{os.getenv('GITHUB_SERVER_URL', 'https://github.com')}/{os.getenv('GITHUB_REPOSITORY', '')}/actions/runs/{os.getenv('GITHUB_RUN_ID', '')}"
-        if outcome != Outcome.NOT_SELECTED:
+        if outcome != Outcome.NOT_SELECTED and os.getenv("DISCORD_NOTIFY_IN_WORKFLOW", "").lower() != "true":
             send_discord(outcome, code, run_url)
     return 0 if outcome in (Outcome.DRY_RUN_READY, Outcome.SUBMITTED_PAYMENT_PENDING, Outcome.CONFIRMED, Outcome.NOT_SELECTED) else 1
 
