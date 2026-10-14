@@ -60,16 +60,13 @@ jobs:
           DISCORD_CHANNEL_ID: ${{ secrets.DISCORD_CHANNEL_ID }}
           GITHUB_REPOSITORY: ${{ github.repository }}
           GITHUB_RUN_ID: ${{ github.run_id }}
+          EVENT_URL: ${{ inputs.event_url }}
+          EVENTS: ${{ inputs.events }}
+          DRY_RUN: ${{ inputs.dry_run }}
+          RUNNER_COUNT: ${{ inputs.runner_count }}
+          WAIT_MINUTES: ${{ inputs.wait_minutes }}
         run: |
-          python3 - <<'PY'
-          import logging
-          import os
-          from discord_notify import send_discord_message
-          logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
-          url = ("https://github.com/" + os.environ["GITHUB_REPOSITORY"]
-                 + "/actions/runs/" + os.environ["GITHUB_RUN_ID"])
-          send_discord_message("WCA crawler: STARTED. Waiting for registration opening. " + url)
-          PY
+          python3 notification_report.py start
 
   register:
     needs: prepare
@@ -100,6 +97,7 @@ jobs:
           DRY_RUN: ${{ inputs.dry_run }}
           WAIT_MINUTES: ${{ inputs.wait_minutes }}
           HEADLESS: 'true'
+          DISCORD_NOTIFY_IN_WORKFLOW: 'true'
           RUNNER_COUNT: ${{ inputs.runner_count }}
           RUNNER_INDEX: ${{ matrix.runner_index }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -110,8 +108,6 @@ jobs:
           BIRTHDAY_DAY: ${{ secrets.BIRTHDAY_DAY }}
           EMAIL: ${{ secrets.EMAIL }}
           PHONE: ${{ secrets.PHONE }}
-          DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
-          DISCORD_CHANNEL_ID: ${{ secrets.DISCORD_CHANNEL_ID }}
           GITHUB_RUN_ID: ${{ github.run_id }}
           GITHUB_REPOSITORY: ${{ github.repository }}
           GITHUB_SERVER_URL: ${{ github.server_url }}
@@ -122,9 +118,10 @@ jobs:
             -v "$RUNNER_TEMP/wca-result:/result" \
             -e RESULT_PATH=/result/run-result.json \
             -e EVENT_URL -e EVENTS -e DRY_RUN -e WAIT_MINUTES -e HEADLESS \
+            -e DISCORD_NOTIFY_IN_WORKFLOW \
             -e RUNNER_COUNT -e RUNNER_INDEX -e GITHUB_TOKEN -e GITHUB_SHA \
             -e WCA_ID -e BIRTHDAY_YEAR -e BIRTHDAY_MONTH -e BIRTHDAY_DAY \
-            -e EMAIL -e PHONE -e DISCORD_TOKEN -e DISCORD_CHANNEL_ID \
+            -e EMAIL -e PHONE \
             -e GITHUB_RUN_ID -e GITHUB_REPOSITORY -e GITHUB_SERVER_URL \
             "$IMAGE"
       - name: Publish diagnostic result
@@ -174,3 +171,32 @@ jobs:
               if (!missingRef) throw error;
               core.info('No submission claim to remove; cleanup complete.');
             }
+
+  notify:
+    needs: [prepare, register, cleanup]
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Gather worker diagnostics
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          pattern: registration-diagnostics-*
+          path: ${{ runner.temp }}/registration-results
+      - name: Send one consolidated Discord outcome
+        env:
+          DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
+          DISCORD_CHANNEL_ID: ${{ secrets.DISCORD_CHANNEL_ID }}
+          EVENT_URL: ${{ inputs.event_url }}
+          EVENTS: ${{ inputs.events }}
+          RUNNER_COUNT: ${{ inputs.runner_count }}
+          DRY_RUN: ${{ inputs.dry_run }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+          REGISTER_RESULT: ${{ needs.register.result }}
+        run: python3 notification_report.py finish "$RUNNER_TEMP/registration-results"
