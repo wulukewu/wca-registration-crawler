@@ -14,7 +14,7 @@ from discord_notify import send_discord_message
 from registration_claim import claim_registration, claim_already_exists
 from registration_logic import (
     Config, Outcome, RegistrationError, classify_after_submit, parse_events,
-    validate_config, registration_select_url,
+    validate_config, registration_select_url, seconds_until_worker_slot,
 )
 
 LOG = logging.getLogger("wca")
@@ -34,6 +34,7 @@ def load_config() -> Config:
     try:
         wait_minutes = int(os.getenv("WAIT_MINUTES", "60"))
         runner_count = int(os.getenv("RUNNER_COUNT", "1"))
+        runner_index = int(os.getenv("RUNNER_INDEX", "1"))
         poll_seconds = max(float(os.getenv("POLL_SECONDS", "5")), 5 * runner_count)
     except ValueError:
         raise RegistrationError("CONFIG", "INVALID_WAIT_SETTINGS") from None
@@ -49,6 +50,7 @@ def load_config() -> Config:
         dry_run=env_bool("DRY_RUN", True),
         wait_minutes=wait_minutes, poll_seconds=poll_seconds,
         headless=env_bool("HEADLESS", True), runner_count=runner_count,
+        runner_index=runner_index,
     )
 
 
@@ -73,11 +75,22 @@ class Runner:
 
     def await_open(self, url: str):
         self.stage = "OPEN"
+        deadline = time.monotonic() + self.cfg.wait_minutes * 60
+        if self.cfg.runner_count > 1:
+            # Align even the first request: GitHub workers start at different times.
+            delay = seconds_until_worker_slot(
+                time.time(), self.cfg.runner_index,
+                self.cfg.runner_count, self.cfg.poll_seconds,
+            )
+            LOG.info("stage=OPEN status=SLOT_READY worker=%d/%d delay_seconds=%.2f",
+                     self.cfg.runner_index, self.cfg.runner_count, delay)
+            time.sleep(min(delay, max(0.0, deadline - time.monotonic())))
+        if time.monotonic() >= deadline:
+            raise RegistrationError("OPEN", "REGISTRATION_NOT_OPEN_BEFORE_TIMEOUT")
         try:
             self.driver.get(url)
         except Exception as exc:
             LOG.warning("stage=OPEN status=NAVIGATION_RETRY error_type=%s", type(exc).__name__)
-        deadline = time.monotonic() + self.cfg.wait_minutes * 60
         last_note = -1
         next_claim_check = time.monotonic() + 60
         while time.monotonic() < deadline:
@@ -107,7 +120,16 @@ class Runner:
             if note != last_note:
                 LOG.info("stage=OPEN status=WAITING remaining_minutes=%d", max(note, 0))
                 last_note = note
-            time.sleep(min(self.cfg.poll_seconds, max(0, deadline - time.monotonic())))
+            delay = (
+                self.cfg.poll_seconds if self.cfg.runner_count == 1
+                else seconds_until_worker_slot(
+                    time.time(), self.cfg.runner_index,
+                    self.cfg.runner_count, self.cfg.poll_seconds,
+                )
+            )
+            time.sleep(min(delay, max(0.0, deadline - time.monotonic())))
+            if time.monotonic() >= deadline:
+                break
             try:
                 self.driver.get(url)  # Re-enter original path even if the server redirected.
             except Exception as exc:

@@ -37,6 +37,42 @@ class ClaimTests(unittest.TestCase):
             self.assertEqual(cfg.runner_count, 4)
             self.assertEqual(cfg.poll_seconds, 20)
 
+    def test_worker_index_is_loaded_from_actions_matrix(self):
+        from main import load_config
+        with (patch.dict(os.environ, {"RUNNER_COUNT": "4", "RUNNER_INDEX": "3"}),
+              patch("main.load_dotenv")):
+            cfg = load_config()
+            self.assertEqual(cfg.runner_index, 3)
+            self.assertEqual(cfg.poll_seconds, 20)
+
+    def test_initial_request_waits_for_its_slot(self):
+        from main import Runner
+        from registration_logic import Config
+
+        operations = []
+
+        class Input:
+            def is_displayed(self):
+                return True
+
+        class Driver:
+            def get(self, url):
+                operations.append(("get", url))
+
+            def find_elements(self, by, value):
+                return [Input()] if value.startswith("input[id^=") else []
+
+        cfg = Config(
+            "https://cubing-tw.net/event/Test", "2020ABCD01",
+            "2000", "1", "1", "test@example.invalid",
+            runner_count=5, runner_index=3, poll_seconds=25,
+        )
+        with (patch("main.time.time", return_value=100.0),
+              patch("main.time.sleep", side_effect=lambda delay: operations.append(("sleep", delay)))):
+            Runner(Driver(), cfg).await_open("https://cubing-tw.net/event/Test/registration")
+        self.assertEqual(operations[0], ("sleep", 10))
+        self.assertEqual(operations[1][0], "get")
+
     def test_single_runner_uses_no_github_claim(self):
         with patch("registration_claim.request.urlopen") as request:
             self.assertTrue(claim_registration(1))

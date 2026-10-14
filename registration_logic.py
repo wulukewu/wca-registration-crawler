@@ -38,12 +38,28 @@ class Config:
     poll_seconds: float = 5.0
     headless: bool = True
     runner_count: int = 1
+    runner_index: int = 1
 
 
 EVENT_ALIASES = {
     "333bf": "3bld", "333fm": "3fmc", "444bf": "4bld",
     "555bf": "5bld", "333mbf": "mbld",
 }
+
+
+def seconds_until_worker_slot(
+    now: float, runner_index: int, runner_count: int, poll_seconds: float
+) -> float:
+    """Seconds to the next wall-clock polling slot for a one-based worker.
+
+    N workers share one period; worker i has phase (i - 1) / N.
+    No assumptions about a maximum N, worker start order, or GitHub launch times.
+    Page-load latency still affects actual request timing.
+    """
+    if not (runner_count >= 1 and 1 <= runner_index <= runner_count and poll_seconds > 0):
+        raise ValueError("invalid worker slot")
+    phase = (runner_index - 1) * (poll_seconds / runner_count)
+    return (phase - now % poll_seconds) % poll_seconds
 
 
 def normalize_event_url(raw: str) -> str:
@@ -103,7 +119,7 @@ def validate_config(c: Config) -> str:
         raise RegistrationError("CONFIG", "INVALID_BIRTHDAY") from None
     if not re.fullmatch(r"[^\s@]+@[^\s@]+\.[^\s@]+", c.email):
         raise RegistrationError("CONFIG", "INVALID_EMAIL")
-    if not (1 <= c.wait_minutes <= 300) or not (2 <= c.poll_seconds <= 60) or not (1 <= c.runner_count <= 5):
+    if not (1 <= c.wait_minutes <= 300) or not (2 <= c.poll_seconds <= 60) or not (1 <= c.runner_count <= 5) or not (1 <= c.runner_index <= c.runner_count):
         raise RegistrationError("CONFIG", "INVALID_WAIT_SETTINGS")
     parse_events(c.events)
     return url
