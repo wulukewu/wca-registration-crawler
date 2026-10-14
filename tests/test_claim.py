@@ -5,7 +5,7 @@ from unittest.mock import patch
 from urllib.error import HTTPError, URLError
 
 from main import Runner
-from registration_claim import claim_registration
+from registration_claim import claim_registration, claim_already_exists
 from registration_logic import Config, Outcome, RegistrationError
 
 
@@ -56,6 +56,18 @@ class ClaimTests(unittest.TestCase):
             self.assertEqual(error.exception.code, "CLAIM_SERVICE_UNCERTAIN")
             self.assertEqual(api.call_count, 1)
 
+    def test_standby_observes_existing_claim(self):
+        with patch.dict(os.environ, ENV), patch("registration_claim.request.urlopen", return_value=Response(200)) as api:
+            self.assertTrue(claim_already_exists(5))
+            request = api.call_args.args[0]
+            self.assertIn("/git/ref/heads/wca-registration-claim-123456", request.full_url)
+            self.assertEqual(request.get_method(), "GET")
+
+    def test_standby_observes_missing_claim(self):
+        missing = HTTPError("https://api.github.com", 404, "missing", {}, None)
+        with patch.dict(os.environ, ENV), patch("registration_claim.request.urlopen", side_effect=missing):
+            self.assertFalse(claim_already_exists(2))
+
     def test_missing_env_cannot_continue_to_registration(self):
         with patch.dict(os.environ, {**ENV, "GITHUB_TOKEN": ""}):
             with self.assertRaises(RegistrationError) as error:
@@ -70,6 +82,16 @@ class ClaimTests(unittest.TestCase):
                 claim_registration(5)
             self.assertEqual(error.exception.code, "CLAIM_VALIDATION_FAILED")
             self.assertEqual(api.call_count, 2)
+
+    def test_standby_exits_before_election_when_claim_is_observed(self):
+        config = Config("https://cubing-tw.net/event/Test", "2020ABCD01", "2000", "1", "1", "test@example.invalid", runner_count=3)
+        runner = Runner(object(), config)
+        with (patch.object(runner, "await_open", return_value=False),
+              patch("main.claim_registration") as claimed,
+              patch.object(runner, "identify") as identified):
+            self.assertEqual(runner.run("https://cubing-tw.net/event/Test/registration"), Outcome.NOT_SELECTED)
+            claimed.assert_not_called()
+            identified.assert_not_called()
 
     def test_losing_worker_never_fills_or_submits(self):
         config = Config("https://cubing-tw.net/event/Test", "2020ABCD01", "2000", "1", "1", "test@example.invalid", runner_count=3)
