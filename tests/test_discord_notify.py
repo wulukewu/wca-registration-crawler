@@ -6,7 +6,7 @@ import unittest
 from unittest.mock import patch
 from urllib.error import HTTPError, URLError
 
-from discord_notify import send_discord_message
+from discord_notify import send_discord_message, send_discord_payload
 
 
 class Response:
