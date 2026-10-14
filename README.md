@@ -103,6 +103,24 @@ A Selenium-based helper for **Cubing-TW competition registration**. It runs from
 
 > GitHub 不允許查看 Secret 原始值；要確認值正確需重新設定或做一次受控測試。不要把個資、密碼或 Token 填在 Run workflow 的明文欄位。
 
+## Discord 通知與獨立測試
+
+提供 `DISCORD_TOKEN`（**Bot Token**，不是 Webhook URL、Client Secret 或 Discord 帳號 Token）和 `DISCORD_CHANNEL_ID`（文字頻道 ID），兩個 Secrets 都必須有值。Bot 必須已加入頻道所在伺服器，且在目標頻道具有 **View Channel** 和 **Send Messages** 權限。
+
+- **開始執行**：新版 `WCA Runner` 在 `prepare` 階段嘗試發送一次 `STARTED`，表示已啟動監控，**不是報名成功**。多 Runner 也只發一次。
+- **執行結束**：真正執行報名的 Runner 傳送 `DRY_RUN_READY`、`FAILED`、`UNKNOWN` 或 `SUBMITTED_PAYMENT_PENDING` 等結果；沒取得提交權的 `NOT_SELECTED` Worker 不會額外通知。
+- **獨立測試**：進入 **Actions → Test Discord notification → Run workflow**，選 `main` 執行。此工作**只傳測試訊息，不啟動報名爬蟲、也不需等待報名開放**；可在正式使用前檢查 Bot 設定。
+- 若通知失敗，請查看對應工作中的 `notification=FAILED`、`http_status` 和 `discord_code`。程式不會記錄 Token、Channel ID 或 Discord 錯誤訊息原文，也不會因通知失敗而改動原本的報名結果。
+
+| Discord HTTP 狀態 | 常見原因 | 檢查項目 |
+| --- | --- | --- |
+| `401` | Token 無效、不是 Bot Token | Developer Portal 重新取得 Bot Token 並更新 `DISCORD_TOKEN` |
+| `403` | Bot 無權限 | 確認 Bot 已在伺服器，目標頻道允許 **View Channel**、**Send Messages** |
+| `404` | 頻道不存在或無法存取 | 重新複製正確文字頻道 ID 至 `DISCORD_CHANNEL_ID`，並確認可見權限 |
+| `429` | API 請求過多 | 遵循 Discord 回應的限制，避免反覆測試 |
+
+正式執行前可先用獨立測試驗證；Secrets 不必提供給其他人。
+
 ## 在本機執行｜Local development
 
 需求：Python、Chrome／Chromium 和相容的 ChromeDriver，與 `requirements.txt` 中的 Python 套件。
