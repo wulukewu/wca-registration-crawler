@@ -29,6 +29,14 @@ ENV = {
 
 
 class ClaimTests(unittest.TestCase):
+    def test_polling_scales_with_worker_count_even_with_override(self):
+        from main import load_config
+        with (patch.dict(os.environ, {"RUNNER_COUNT": "4", "POLL_SECONDS": "5"}),
+              patch("main.load_dotenv")):
+            cfg = load_config()
+            self.assertEqual(cfg.runner_count, 4)
+            self.assertEqual(cfg.poll_seconds, 20)
+
     def test_single_runner_uses_no_github_claim(self):
         with patch("registration_claim.request.urlopen") as request:
             self.assertTrue(claim_registration(1))
