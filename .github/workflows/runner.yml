@@ -164,6 +164,13 @@ jobs:
                 owner: context.repo.owner, repo: context.repo.repo,
                 ref: 'heads/wca-registration-claim-' + context.runId
               });
+              core.info('Removed run-scoped submission claim.');
             } catch (error) {
-              if (error.status !== 404) throw error;
+              // GitHub returns 422 (not 404) when deleting a missing ref.
+              // No claim is created if registration never opens, which is expected.
+              const missingRef = error.status === 404 ||
+                (error.status === 422 &&
+                 error.response?.data?.message === 'Reference does not exist');
+              if (!missingRef) throw error;
+              core.info('No submission claim to remove; cleanup complete.');
             }
