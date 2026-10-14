@@ -188,5 +188,15 @@ jobs:
         with:
           pattern: registration-diagnostics-*
           path: ${{ runner.temp }}/registration-results
-      - name: Prepare aggregate outcome
+      - name: Send one consolidated Discord outcome
+        env:
+          DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
+          DISCORD_CHANNEL_ID: ${{ secrets.DISCORD_CHANNEL_ID }}
+          EVENT_URL: ${{ inputs.event_url }}
+          EVENTS: ${{ inputs.events }}
+          RUNNER_COUNT: ${{ inputs.runner_count }}
+          DRY_RUN: ${{ inputs.dry_run }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+          REGISTER_RESULT: ${{ needs.register.result }}
         run: python3 notification_report.py finish "$RUNNER_TEMP/registration-results"
