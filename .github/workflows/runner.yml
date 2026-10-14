@@ -121,7 +121,7 @@ jobs:
             -e DISCORD_NOTIFY_IN_WORKFLOW \
             -e RUNNER_COUNT -e RUNNER_INDEX -e GITHUB_TOKEN -e GITHUB_SHA \
             -e WCA_ID -e BIRTHDAY_YEAR -e BIRTHDAY_MONTH -e BIRTHDAY_DAY \
-            -e EMAIL -e PHONE -e DISCORD_TOKEN -e DISCORD_CHANNEL_ID \
+            -e EMAIL -e PHONE \
             -e GITHUB_RUN_ID -e GITHUB_REPOSITORY -e GITHUB_SERVER_URL \
             "$IMAGE"
       - name: Publish diagnostic result
