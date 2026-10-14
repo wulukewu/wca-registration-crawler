@@ -24,6 +24,12 @@ HINTS = {
 
 
 def send_discord_message(content: str) -> bool:
+    """Backwards-compatible plain text notification (e.g. smoke tests)."""
+    return send_discord_payload({"content": content[:1900]})
+
+
+def send_discord_payload(message: dict) -> bool:
+    """Post a structured Discord payload with mentions disabled."""
     token = os.getenv("DISCORD_TOKEN", "")
     channel = os.getenv("DISCORD_CHANNEL_ID", "")
     if not token or not channel:
@@ -34,9 +40,9 @@ def send_discord_message(content: str) -> bool:
         return False
 
     payload = json.dumps({
-        "content": content[:1900],
+        **message,
         "allowed_mentions": {"parse": []},
-    }).encode("utf-8")
+    }, ensure_ascii=False).encode("utf-8")
     req = request.Request(
         "https://discord.com/api/v10/channels/" + channel + "/messages",
         data=payload,
