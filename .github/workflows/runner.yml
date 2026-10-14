@@ -68,7 +68,7 @@ jobs:
           logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
           url = ("https://github.com/" + os.environ["GITHUB_REPOSITORY"]
                  + "/actions/runs/" + os.environ["GITHUB_RUN_ID"])
-          send_discord_message("WCA crawler: STARTED. Waiting for registration opening. " + url)
+          send_discord_message("WCA crawler: STARTED. See workflow for settings. " + url)
           PY
 
   register:
