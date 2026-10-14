@@ -74,7 +74,7 @@ class BrowserFlowTests(unittest.TestCase):
                     height: rect.height + 'px', zIndex: '999999',
                     background: 'rgba(0,0,0,0.05)'
                 });
-                document.body.appendChild(label);
+                document.getElementById('div_events').appendChild(label);
             """)
 
             # Verify the fixture really reproduces the original Selenium issue
