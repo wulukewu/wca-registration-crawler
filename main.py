@@ -34,7 +34,7 @@ def load_config() -> Config:
     try:
         wait_minutes = int(os.getenv("WAIT_MINUTES", "60"))
         runner_count = int(os.getenv("RUNNER_COUNT", "1"))
-        poll_seconds = float(os.getenv("POLL_SECONDS", str(5 * runner_count)))
+        poll_seconds = max(float(os.getenv("POLL_SECONDS", "5")), 5 * runner_count)
     except ValueError:
         raise RegistrationError("CONFIG", "INVALID_WAIT_SETTINGS") from None
     return Config(

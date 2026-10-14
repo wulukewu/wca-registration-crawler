@@ -58,7 +58,7 @@ A Selenium-based helper for **Cubing-TW competition registration**. It runs from
 
 ### 等待時間、Runner 與成功後行為
 
-- 程式在等待開放時大約**每 5 秒**檢查一次，直到可以進入報名表，或到達 `wait_minutes` 限制。
+- 單一 Runner 在等待開放時大約**每 5 秒**檢查一次；多 Runner 會依數量延長各自檢查間隔，直到開放或到達 `wait_minutes` 限制。
 - 可提早數小時啟動：例如 20:00 開放、16:00 執行，可選 `300`。等待時間是**最多等多久**，不是固定延遲，也不是報名成功後還會持續執行的時間。
 - 此版本整個 GitHub Actions Job 的 `timeout-minutes` 為 **350 分鐘**（少於 GitHub-hosted runner 的六小時限制）。請保留啟動與填表的緩衝；Actions 開始排程可能有延遲。
 - `runner_count` 可選 `1`～`5`，每一台是獨立 GitHub-hosted Runner。多台只負責偵測開放；**第一台偵測到並成功建立 GitHub 原子提交鎖的 Runner** 才能繼續使用 WCA ID、填表和送出，其他 Runner 回報 `NOT_SELECTED` 即停止。
