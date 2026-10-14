@@ -67,6 +67,7 @@ def run_url():
 
 def make_card(title, description, color, more=()):
     event, link = event_info()
+    event = re.sub(r"(?<=[a-z0-9])(?=[A-Z])", " ", event)
     mode = ("🧪 測試（不會送出）" if os.getenv("DRY_RUN", "true").lower() == "true"
             else "🚀 正式（允許送出一次）")
     fields = [
