@@ -97,6 +97,7 @@ jobs:
           DRY_RUN: ${{ inputs.dry_run }}
           WAIT_MINUTES: ${{ inputs.wait_minutes }}
           HEADLESS: 'true'
+          DISCORD_NOTIFY_IN_WORKFLOW: 'true'
           RUNNER_COUNT: ${{ inputs.runner_count }}
           RUNNER_INDEX: ${{ matrix.runner_index }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
