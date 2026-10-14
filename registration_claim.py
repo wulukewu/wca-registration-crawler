@@ -58,3 +58,33 @@ def claim_registration(runner_count: int) -> bool:
     except (URLError, TimeoutError):
         # HTTP may have arrived; do not retry an ambiguous claim.
         raise RegistrationError("COORDINATE", "CLAIM_SERVICE_UNCERTAIN") from None
+
+def claim_already_exists(runner_count: int) -> bool:
+    """Check at most once a minute so waiting workers stop after a winner exits."""
+    if runner_count == 1:
+        return False
+    repo = os.getenv("GITHUB_REPOSITORY", "")
+    run_id = os.getenv("GITHUB_RUN_ID", "")
+    token = os.getenv("GITHUB_TOKEN", "")
+    if (not re.fullmatch(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+", repo)
+            or not re.fullmatch(r"[0-9]+", run_id) or not token):
+        raise RegistrationError("COORDINATE", "CLAIM_CONFIG_MISSING")
+    endpoint = ("https://api.github.com/repos/" + repo
+                + "/git/ref/heads/wca-registration-claim-" + run_id)
+    req = request.Request(endpoint, method="GET", headers={
+        "Authorization": "Bearer " + token,
+        "Accept": "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28",
+        "User-Agent": "wca-registration-crawler",
+    })
+    try:
+        with request.urlopen(req, timeout=12) as response:
+            if response.status != 200:
+                raise RegistrationError("COORDINATE", "CLAIM_RESPONSE_UNEXPECTED")
+            return True
+    except HTTPError as exc:
+        if exc.code == 404:
+            return False
+        raise RegistrationError("COORDINATE", "CLAIM_SERVICE_ERROR") from None
+    except (URLError, TimeoutError):
+        raise RegistrationError("COORDINATE", "CLAIM_SERVICE_UNCERTAIN") from None
