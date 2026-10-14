@@ -8,9 +8,9 @@ import sys
 import time
 from datetime import datetime, timezone
 from pathlib import Path
-from urllib import request
 
 from dotenv import load_dotenv
+from discord_notify import send_discord_message
 from registration_claim import claim_registration, claim_already_exists
 from registration_logic import (
     Config, Outcome, RegistrationError, classify_after_submit, parse_events,
@@ -273,25 +273,8 @@ class Runner:
 
 
 def send_discord(status: Outcome, code: str, run_url: str) -> None:
-    token = os.getenv("DISCORD_TOKEN")
-    channel = os.getenv("DISCORD_CHANNEL_ID")
-    if not token or not channel:
-        return
-    if not channel.isdigit():
-        LOG.warning("notification=SKIPPED code=INVALID_DISCORD_CHANNEL_ID")
-        return
-    content = f"WCA crawler: {status.value} ({code}). {run_url}"[:1900]
-    payload = json.dumps({"content": content}).encode("utf-8")
-    req = request.Request(
-        f"https://discord.com/api/v10/channels/{channel}/messages", data=payload,
-        headers={"Authorization": f"Bot {token}", "Content-Type": "application/json"}, method="POST",
-    )
-    try:
-        with request.urlopen(req, timeout=8) as response:
-            if response.status not in (200, 201, 204):
-                raise RuntimeError("Discord response error")
-    except Exception as exc:
-        LOG.warning("notification=FAILED error_type=%s", type(exc).__name__)
+    # Best effort: Discord errors should never redefine the registration result.
+    send_discord_message(f"WCA crawler: {status.value} ({code}). {run_url}")
 
 
 def write_summary(outcome: Outcome, stage: str, code: str, started: float) -> None:
