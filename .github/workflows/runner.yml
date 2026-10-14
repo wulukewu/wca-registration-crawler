@@ -171,3 +171,22 @@ jobs:
               if (!missingRef) throw error;
               core.info('No submission claim to remove; cleanup complete.');
             }
+
+  notify:
+    needs: [prepare, register, cleanup]
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Gather worker diagnostics
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          pattern: registration-diagnostics-*
+          path: ${{ runner.temp }}/registration-results
+      - name: Prepare aggregate outcome
+        run: python3 notification_report.py finish "$RUNNER_TEMP/registration-results"
