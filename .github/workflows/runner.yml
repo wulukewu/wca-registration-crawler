@@ -120,6 +120,7 @@ jobs:
             -v "$RUNNER_TEMP/wca-result:/result" \
             -e RESULT_PATH=/result/run-result.json \
             -e EVENT_URL -e EVENTS -e DRY_RUN -e WAIT_MINUTES -e HEADLESS \
+            -e DISCORD_NOTIFY_IN_WORKFLOW \
             -e RUNNER_COUNT -e RUNNER_INDEX -e GITHUB_TOKEN -e GITHUB_SHA \
             -e WCA_ID -e BIRTHDAY_YEAR -e BIRTHDAY_MONTH -e BIRTHDAY_DAY \
             -e EMAIL -e PHONE -e DISCORD_TOKEN -e DISCORD_CHANNEL_ID \
