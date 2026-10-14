@@ -1,0 +1,33 @@
+name: Test Discord notification
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Send Discord test message
+        env:
+          DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
+          DISCORD_CHANNEL_ID: ${{ secrets.DISCORD_CHANNEL_ID }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+        run: |
+          python3 - <<'PY'
+          import logging
+          import os
+          from discord_notify import send_discord_message
+
+          logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
+          url = ("https://github.com/" + os.environ["GITHUB_REPOSITORY"]
+                 + "/actions/runs/" + os.environ["GITHUB_RUN_ID"])
+          ok = send_discord_message("WCA registration crawler: Discord test succeeded. " + url)
+          if not ok:
+              raise SystemExit("Discord notification test failed. Read safe error code above.")
+          PY

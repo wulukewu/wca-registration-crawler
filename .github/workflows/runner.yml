@@ -53,6 +53,24 @@ jobs:
           case "$COUNT" in 1|2|3|4|5) ;; *) echo 'Invalid runner count' >&2; exit 1 ;; esac
           echo "runners=[$(seq -s, 1 "$COUNT")]" >> "$GITHUB_OUTPUT"
 
+      - uses: actions/checkout@v4
+      - name: Announce registration watcher start (best effort)
+        env:
+          DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
+          DISCORD_CHANNEL_ID: ${{ secrets.DISCORD_CHANNEL_ID }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+        run: |
+          python3 - <<'PY'
+          import logging
+          import os
+          from discord_notify import send_discord_message
+          logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
+          url = ("https://github.com/" + os.environ["GITHUB_REPOSITORY"]
+                 + "/actions/runs/" + os.environ["GITHUB_RUN_ID"])
+          send_discord_message("WCA crawler: STARTED. Waiting for registration opening. " + url)
+          PY
+
   register:
     needs: prepare
     strategy:
