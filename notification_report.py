@@ -15,7 +15,7 @@ STATUS = {
     "UNKNOWN": ("🚨 送出結果不明", "可能已經送出！請先查官方名單，切勿盲目重跑。", 0xe74c3c),
     "FAILED": ("🔴 自動報名未完成", "請查看錯誤階段與原因，必要時改用人工報名。", 0xe74c3c),
     "TIMEOUT": ("⏰ 等待逾時（未報名）", "沒有偵測到開放的報名入口，未執行送出。", 0x95a5a6),
-    "INFRA": ("🔴 無法確認執行結果", "沒有完整的 Runner 診斷資料，請查看 Actions。", 0xe74c3c),
+    "INFRA": ("🔴 無法確認執行結果", "缺少完整的 Runner 診斷資料，請查看 Actions。", 0xe74c3c),
     "CONFLICT": ("🚨 多個 Runner 進入流程", "請立即人工核對，切勿自動重跑。", 0xe74c3c),
 }
 STAGE = {"INIT":"初始化","CONFIG":"設定","OPEN":"等待開放","COORDINATE":"協調",
@@ -134,7 +134,7 @@ def finish_card(root):
                   ("🔎 結果代碼",chosen["code"],False)]
     if len({r["index"] for r in rows}) < worker_count():
         description += "\n⚠️ 部分 Runner 沒有診斷資料。"
-    if os.getenv("REGISTER_RESULT") not in ("","success"):
+    if os.getenv("REGISTER_RESULT", "") not in ("","success"):
         description += "\n⚠️ 有 GitHub 工作失敗，請檢查記錄。"
     return make_card(title,description,color,extra)
 
