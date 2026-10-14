@@ -88,7 +88,7 @@ def make_card(title, description, color, more=()):
              "timestamp":datetime.now(timezone.utc).isoformat()}
     if run_url():
         embed["url"] = run_url()
-    return {"embeds":[embed]}
+    return {"content": title + "｜" + event, "embeds":[embed]}
 
 
 def read_results(root):
