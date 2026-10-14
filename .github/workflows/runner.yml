@@ -8,7 +8,7 @@ on:
         type: string
         required: true
       events:
-        description: 'Comma-separated event IDs (333,222) or all'
+        description: 'WCA event IDs: all, 333, 333,222,... (see README)'
         type: string
         required: true
         default: 'all'
