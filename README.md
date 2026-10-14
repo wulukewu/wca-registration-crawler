@@ -124,5 +124,4 @@ POLL_SECONDS=5
 
 - 支援 **Cubing-TW** 的既有報名流程，不支援直接在 WCA 官方網站報名，也不保證主辦方沒有更改 DOM、AJAX 或驗證方式。
 - 報名頁的 WCA ID 驗證採非同步流程；程式等待驗證完成才送出下一步，並確認 Preview 有效，再決定是否送出。
-- 參考 [wca-webpage-intercept 保存的 2024–2025 網頁](https://github.com/wulukewu/wca-webpage-intercept) 建立離線測試；它**不能**代替對當前正式網站的實測。CI 通過也不等於取得參賽名額。
 - 付款、收據及最終參賽資格都需要以主辦方提供的最新資訊查核。
