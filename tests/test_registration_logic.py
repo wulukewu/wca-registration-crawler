@@ -2,7 +2,7 @@ import unittest
 
 from registration_logic import (
     Config, Outcome, RegistrationError, classify_after_submit, normalize_event_url,
-    parse_events, registration_select_url, validate_config,
+    parse_events, registration_select_url, seconds_until_worker_slot, validate_config,
 )
 
 
@@ -65,6 +65,41 @@ class ConfigTests(unittest.TestCase):
         for raw in ("", "333,", "333,333", "333bf,3bld", "all,222", "333;222"):
             with self.subTest(raw=raw), self.assertRaises(RegistrationError):
                 parse_events(raw)
+
+
+class WorkerSlotTests(unittest.TestCase):
+    def test_evenly_staggered_5_workers(self):
+        delays = [seconds_until_worker_slot(100, i, 5, 25)
+                  for i in range(1, 6)]
+        self.assertEqual(delays, [0, 5, 10, 15, 20])
+
+    def test_staggering_scales_without_a_five_worker_assumption(self):
+        # The current Actions UI still limits N to 5.
+        for count in (1, 2, 3, 5, 12, 20):
+            with self.subTest(count=count):
+                period = 5 * count
+                delays = [seconds_until_worker_slot(100 * count, i, count, period)
+                          for i in range(1, count + 1)]
+                self.assertEqual(delays, [5 * k for k in range(count)])
+
+    def test_slots_do_not_shift_with_worker_start_times(self):
+        self.assertAlmostEqual(seconds_until_worker_slot(111.7, 2, 5, 25), 18.3)
+        self.assertAlmostEqual(seconds_until_worker_slot(119.9, 2, 5, 25), 10.1)
+        self.assertAlmostEqual(seconds_until_worker_slot(100.3, 1, 5, 25), 24.7)
+
+    def test_invalid_slot_configuration_fails_closed(self):
+        for args in ((0, 1, 0, 25), (0, 0, 5, 25), (0, 6, 5, 25),
+                     (0, 1, -1, 25), (0, 1, 5, 0)):
+            with self.subTest(args=args), self.assertRaises(ValueError):
+                seconds_until_worker_slot(*args)
+
+    def test_worker_index_validation(self):
+        for kwargs in (dict(runner_count=3, runner_index=0),
+                       dict(runner_count=3, runner_index=4),
+                       dict(runner_count=1, runner_index=2)):
+            with self.subTest(kwargs=kwargs), self.assertRaises(RegistrationError):
+                validate_config(config(**kwargs))
+        self.assertTrue(validate_config(config(runner_count=5, runner_index=5)))
 
 
 class ResultTests(unittest.TestCase):

@@ -62,7 +62,7 @@ A Selenium-based helper for **Cubing-TW competition registration**. It runs from
 - 可提早數小時啟動：例如 20:00 開放、16:00 執行，可選 `300`。等待時間是**最多等多久**，不是固定延遲，也不是報名成功後還會持續執行的時間。
 - 此版本整個 GitHub Actions Job 的 `timeout-minutes` 為 **350 分鐘**（少於 GitHub-hosted runner 的六小時限制）。請保留啟動與填表的緩衝；Actions 開始排程可能有延遲。
 - `runner_count` 可選 `1`～`5`，每一台是獨立 GitHub-hosted Runner。多台只負責偵測開放；**第一台偵測到並成功建立 GitHub 原子提交鎖的 Runner** 才能繼續使用 WCA ID、填表和送出，其他 Runner 回報 `NOT_SELECTED` 即停止。
-- 使用 `2`～`5` 時，每台會把輪詢間隔增為 `5 × runner_count` 秒（最多 25 秒），避免隨著 Runner 數量線性加快向網站請求；實際啟動時間不同，不保證各次請求平均分散。
+- 使用多 Runner 時，每台維持 `5 × runner_count` 秒的輪詢週期，**依共同時鐘將第 1～N 台平均錯開**（包含首次網頁請求）。例如 5 台各 25 秒檢查一次，理想情況下合計約每 5 秒有一台檢查；不會讓總請求量隨台數線性增加。排程公式不限制 N，但目前 Actions 介面及設定驗證仍限制 **1～5 台**，未來擴充台數時須同步調整上限。實際檢查時間仍受網站回應速度與各台電腦時鐘誤差影響，並非延遲保證。
 - 若提交權持有者在送出前失敗，**不會自動轉移提交權或由其他 Runner 重試**，因為無法一律判斷是否已送出。GitHub 在所有 Runner 結束後會嘗試清除這次執行專屬的鎖。
 - GitHub Actions 的 concurrency 也避免兩次**不同的 workflow run** 同時執行，但 queued/重跑仍請人工確認是否已報名。
 - 報名送出時**最多點擊一次 Send**。觀察到付款階段會結束；送出後結果不明也會結束，**不會自動重送**。但目前**沒有**在送出前自動查詢「你是否早就報名成功」的功能。
