@@ -26,6 +26,21 @@ class ConfigTests(unittest.TestCase):
             with self.subTest(invalid=invalid), self.assertRaises(RegistrationError):
                 normalize_event_url(invalid)
 
+    def test_taoyuan_url_and_one_event(self):
+        self.assertEqual(
+            normalize_event_url("https://cubing-tw.net/event/2026TaoyuanAirportCubeDay/registration"),
+            "https://cubing-tw.net/event/2026TaoyuanAirportCubeDay/registration",
+        )
+        self.assertEqual(parse_events("333"), {"333"})
+
+    def test_extended_wait_window(self):
+        for minutes in (15, 60, 120, 180, 240, 300):
+            with self.subTest(minutes=minutes):
+                self.assertTrue(validate_config(config(wait_minutes=minutes)).endswith("/registration"))
+        for minutes in (0, 301, 360):
+            with self.subTest(minutes=minutes), self.assertRaises(RegistrationError):
+                validate_config(config(wait_minutes=minutes))
+
     def test_event_specific_registration_start_link(self):
         base = "https://cubing-tw.net/event/Example2026/registration"
         self.assertEqual(registration_select_url(base, "select"), base + "/select")

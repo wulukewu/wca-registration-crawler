@@ -8,7 +8,7 @@ on:
         type: string
         required: true
       events:
-        description: 'Comma-separated event IDs (333,222) or all'
+        description: 'WCA event IDs: all, 333, 333,222,... (see README)'
         type: string
         required: true
         default: 'all'
@@ -20,7 +20,7 @@ on:
       wait_minutes:
         description: 'Stop waiting for registration to open after'
         type: choice
-        options: ['15', '30', '60']
+        options: ['15', '30', '60', '120', '180', '240', '300']
         default: '60'
         required: true
 
@@ -35,7 +35,7 @@ concurrency:
 jobs:
   register:
     runs-on: ubuntu-latest
-    timeout-minutes: 80
+    timeout-minutes: 350
     steps:
       - uses: actions/checkout@v4
       - uses: docker/login-action@v3
