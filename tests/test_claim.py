@@ -1,4 +1,5 @@
 """Fail-closed coordination behavior; never make real GitHub API calls in tests."""
+import logging
 import os
 import unittest
 from unittest.mock import patch
@@ -72,6 +73,33 @@ class ClaimTests(unittest.TestCase):
             Runner(Driver(), cfg).await_open("https://cubing-tw.net/event/Test/registration")
         self.assertEqual(operations[0], ("sleep", 10))
         self.assertEqual(operations[1][0], "get")
+
+    def test_api_failure_logs_only_numeric_http_status(self):
+        for status in (401, 403, 429, 500):
+            with self.subTest(status=status):
+                error = HTTPError("https://secret-host.example", status,
+                                  "private response body", {}, None)
+                with (patch.dict(os.environ, ENV),
+                      patch("registration_claim.request.urlopen", side_effect=error) as api,
+                      self.assertLogs("wca", logging.WARNING) as logs):
+                    with self.assertRaises(RegistrationError) as failure:
+                        claim_registration(3)
+                self.assertEqual(failure.exception.code, "CLAIM_SERVICE_ERROR")
+                self.assertEqual(api.call_count, 1)
+                self.assertIn("http_status=" + str(status), " ".join(logs.output))
+                self.assertNotIn("secret-host", " ".join(logs.output))
+                self.assertNotIn("private response", " ".join(logs.output))
+                self.assertNotIn(ENV["GITHUB_TOKEN"], " ".join(logs.output))
+
+    def test_claim_observer_http_failure_logs_numeric_status(self):
+        error = HTTPError("https://secret-host.example", 403, "private", {}, None)
+        with (patch.dict(os.environ, ENV),
+              patch("registration_claim.request.urlopen", side_effect=error),
+              self.assertLogs("wca", logging.WARNING) as logs):
+            with self.assertRaises(RegistrationError):
+                claim_already_exists(5)
+        self.assertIn("http_status=403", " ".join(logs.output))
+        self.assertNotIn("secret-host", " ".join(logs.output))
 
     def test_single_runner_uses_no_github_claim(self):
         with patch("registration_claim.request.urlopen") as request:
