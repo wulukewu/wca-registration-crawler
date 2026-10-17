@@ -68,11 +68,35 @@ class ClaimTests(unittest.TestCase):
             "2000", "1", "1", "test@example.invalid",
             runner_count=5, runner_index=3, poll_seconds=25,
         )
+        runner = Runner(Driver(), cfg)
         with (patch("main.time.time", return_value=100.0),
               patch("main.time.sleep", side_effect=lambda delay: operations.append(("sleep", delay)))):
-            Runner(Driver(), cfg).await_open("https://cubing-tw.net/event/Test/registration")
+            runner.await_open("https://cubing-tw.net/event/Test/registration")
         self.assertEqual(operations[0], ("sleep", 10))
         self.assertEqual(operations[1][0], "get")
+        self.assertEqual(runner.open_requests, 1)
+
+    def test_diagnostic_summary_records_open_requests_without_personal_data(self):
+        import json
+        import tempfile
+        from pathlib import Path
+        from main import write_summary
+        cfg = Config("https://cubing-tw.net/event/Test", "2020ABCD01",
+                     "2000", "1", "1", "test@example.invalid")
+        runner = Runner(object(), cfg)
+        runner.open_started_at = 12.0
+        runner.open_requests = 7
+        with tempfile.TemporaryDirectory() as tmp:
+            output = str(Path(tmp) / "run-result.json")
+            with (patch.dict(os.environ, {"RESULT_PATH": output, "GITHUB_STEP_SUMMARY": ""}),
+                  patch("main.time.monotonic", return_value=31.3)):
+                write_summary(Outcome.FAILED, "OPEN",
+                              "REGISTRATION_NOT_OPEN_BEFORE_TIMEOUT", 10.0, runner)
+            record = json.loads(Path(output).read_text())
+            self.assertEqual(record["open_requests"], 7)
+            self.assertAlmostEqual(record["open_elapsed_seconds"], 19.3)
+            self.assertNotIn("2020ABCD01", str(record))
+            self.assertNotIn("test@example.invalid", str(record))
 
     def test_api_failure_logs_only_numeric_http_status(self):
         for status in (401, 403, 429, 500):

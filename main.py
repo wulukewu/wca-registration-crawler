@@ -59,6 +59,13 @@ class Runner:
         self.driver = driver
         self.cfg = cfg
         self.stage = "OPEN"
+        self.open_started_at = None
+        self.open_requests = 0
+
+    def _open_get(self, url: str) -> None:
+        # Count navigation attempts without recording URLs or browser contents.
+        self.open_requests += 1
+        self.driver.get(url)
 
     def _visible(self, selector: str):
         from selenium.webdriver.common.by import By
@@ -75,7 +82,8 @@ class Runner:
 
     def await_open(self, url: str):
         self.stage = "OPEN"
-        deadline = time.monotonic() + self.cfg.wait_minutes * 60
+        self.open_started_at = time.monotonic()
+        deadline = self.open_started_at + self.cfg.wait_minutes * 60
         if self.cfg.runner_count > 1:
             # Align even the first request: GitHub workers start at different times.
             delay = seconds_until_worker_slot(
@@ -88,7 +96,7 @@ class Runner:
         if time.monotonic() >= deadline:
             raise RegistrationError("OPEN", "REGISTRATION_NOT_OPEN_BEFORE_TIMEOUT")
         try:
-            self.driver.get(url)
+            self._open_get(url)
         except Exception as exc:
             LOG.warning("stage=OPEN status=NAVIGATION_RETRY error_type=%s", type(exc).__name__)
         last_note = -1
@@ -108,7 +116,7 @@ class Runner:
             if link:
                 LOG.info("stage=OPEN status=SELECT_LINK_AVAILABLE")
                 try:
-                    self.driver.get(link)
+                    self._open_get(link)
                     self._until("OPEN", "SELECT_PAGE_NOT_READY",
                                 lambda driver: self._visible("input[id^='WCAID_input']"), 15)
                     LOG.info("stage=OPEN status=READY")
@@ -131,7 +139,7 @@ class Runner:
             if time.monotonic() >= deadline:
                 break
             try:
-                self.driver.get(url)  # Re-enter original path even if the server redirected.
+                self._open_get(url)  # Re-enter original path even if the server redirected.
             except Exception as exc:
                 LOG.warning("stage=OPEN status=RELOAD_RETRY error_type=%s", type(exc).__name__)
         raise RegistrationError("OPEN", "REGISTRATION_NOT_OPEN_BEFORE_TIMEOUT")
@@ -341,12 +349,18 @@ def send_discord(status: Outcome, code: str, run_url: str) -> None:
     send_discord_message(f"WCA crawler: {status.value} ({code}). {run_url}")
 
 
-def write_summary(outcome: Outcome, stage: str, code: str, started: float) -> None:
+def write_summary(outcome: Outcome, stage: str, code: str, started: float,
+                  runner: Runner | None = None) -> None:
     result = {
         "outcome": outcome.value, "stage": stage, "code": code,
         "duration_seconds": round(time.monotonic() - started, 2),
         "timestamp_utc": datetime.now(timezone.utc).isoformat(),
     }
+    if runner is not None and runner.open_started_at is not None:
+        result["open_requests"] = runner.open_requests
+        result["open_elapsed_seconds"] = round(
+            max(0.0, time.monotonic() - runner.open_started_at), 2
+        )
     Path(os.getenv("RESULT_PATH", "run-result.json")).write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
     summary = os.getenv("GITHUB_STEP_SUMMARY")
     if summary:
@@ -363,6 +377,7 @@ def main() -> int:
     outcome = Outcome.FAILED
     code, stage = "UNEXPECTED", "INIT"
     driver = None
+    runner = None
     try:
         cfg = load_config()
         target = validate_config(cfg)  # fail before opening a browser
@@ -396,7 +411,7 @@ def main() -> int:
             except Exception:
                 LOG.warning("cleanup=DRIVER_QUIT_FAILED")
         LOG.info("outcome=%s stage=%s code=%s", outcome.value, stage, code)
-        write_summary(outcome, stage, code, started)
+        write_summary(outcome, stage, code, started, runner)
         run_url = f"{os.getenv('GITHUB_SERVER_URL', 'https://github.com')}/{os.getenv('GITHUB_REPOSITORY', '')}/actions/runs/{os.getenv('GITHUB_RUN_ID', '')}"
         if outcome != Outcome.NOT_SELECTED and os.getenv("DISCORD_NOTIFY_IN_WORKFLOW", "").lower() != "true":
             send_discord(outcome, code, run_url)

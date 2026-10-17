@@ -80,7 +80,7 @@ A Selenium-based helper for **Cubing-TW competition registration**. It runs from
 
 `CONFIRMED` 僅保留給未來有可驗證正式收據的情況；現有實作**不會**只憑頁面文字就宣稱已錄取。
 
-每次執行會在 Actions Summary 和有效的 `registration-diagnostics` artifact 中保留 `run-result.json`（`outcome`、`stage`、`code`、耗時、時間戳）；artifact 保留七天。**不會上傳 HTML、畫面截圖、姓名、WCA ID、生日、Email 或報名單號**。有設定 Discord 時也會通知結果與執行連結。
+每次執行會在 Actions Summary 和有效的 `registration-diagnostics` artifact 中保留 `run-result.json`（`outcome`、`stage`、`code`、耗時、時間戳；若進入等待階段，另含 `open_requests` 和 `open_elapsed_seconds`）；artifact 保留七天。**不會上傳 HTML、畫面截圖、姓名、WCA ID、生日、Email 或報名單號**。有設定 Discord 時也會通知結果與執行連結。
 
 ## Secrets 設定與清理
 
