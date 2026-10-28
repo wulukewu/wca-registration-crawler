@@ -6,12 +6,15 @@ Other workers finish without touching personal data or submitting.
 from __future__ import annotations
 
 import json
+import logging
 import os
 import re
 from urllib import request
 from urllib.error import HTTPError, URLError
 
 from registration_logic import RegistrationError
+
+LOG = logging.getLogger('wca')
 
 
 def claim_registration(runner_count: int) -> bool:
@@ -44,6 +47,9 @@ def claim_registration(runner_count: int) -> bool:
             return True
     except HTTPError as exc:
         if exc.code != 422:
+            # The status is safe to disclose; request headers and response text
+            # may contain secrets and must never enter Actions logs.
+            LOG.warning("stage=COORDINATE code=CLAIM_SERVICE_ERROR http_status=%d", exc.code)
             raise RegistrationError("COORDINATE", "CLAIM_SERVICE_ERROR") from None
         # A 422 can indicate either an existing ref or invalid input.
         # Only treat it as a lost race if the common ref actually exists.
@@ -54,6 +60,7 @@ def claim_registration(runner_count: int) -> bool:
                     return False
         except (HTTPError, URLError, TimeoutError):
             pass
+        LOG.warning("stage=COORDINATE code=CLAIM_VALIDATION_FAILED http_status=422")
         raise RegistrationError("COORDINATE", "CLAIM_VALIDATION_FAILED") from None
     except (URLError, TimeoutError):
         # HTTP may have arrived; do not retry an ambiguous claim.
@@ -85,6 +92,7 @@ def claim_already_exists(runner_count: int) -> bool:
     except HTTPError as exc:
         if exc.code == 404:
             return False
+        LOG.warning("stage=COORDINATE code=CLAIM_SERVICE_ERROR http_status=%d", exc.code)
         raise RegistrationError("COORDINATE", "CLAIM_SERVICE_ERROR") from None
     except (URLError, TimeoutError):
         raise RegistrationError("COORDINATE", "CLAIM_SERVICE_UNCERTAIN") from None
