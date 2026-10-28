@@ -85,6 +85,7 @@ class ClaimTests(unittest.TestCase):
                      "2000", "1", "1", "test@example.invalid")
         runner = Runner(object(), cfg)
         runner.open_started_at = 12.0
+        runner.open_elapsed_seconds = 19.3
         runner.open_requests = 7
         with tempfile.TemporaryDirectory() as tmp:
             output = str(Path(tmp) / "run-result.json")
@@ -97,6 +98,50 @@ class ClaimTests(unittest.TestCase):
             self.assertAlmostEqual(record["open_elapsed_seconds"], 19.3)
             self.assertNotIn("2020ABCD01", str(record))
             self.assertNotIn("test@example.invalid", str(record))
+
+    def test_open_duration_stops_before_form_processing(self):
+        cfg = Config("https://cubing-tw.net/event/Test", "2020ABCD01",
+                     "2000", "1", "1", "test@example.invalid", dry_run=True)
+        runner = Runner(object(), cfg)
+
+        def open_once(_url):
+            runner.open_started_at = 10.0
+            runner.open_requests = 1
+
+        # Later form processing should not change the frozen OPEN metric.
+        with (patch.object(runner, "await_open", side_effect=open_once),
+              patch("main.time.monotonic", return_value=13.5),
+              patch.object(runner, "identify"),
+              patch.object(runner, "fill"),
+              patch.object(runner, "preview"),
+              patch.object(runner, "submit") as submit):
+            self.assertEqual(
+                runner.run("https://cubing-tw.net/event/Test/registration"),
+                Outcome.DRY_RUN_READY,
+            )
+            submit.assert_not_called()
+        self.assertAlmostEqual(runner.open_elapsed_seconds, 3.5)
+        # A delayed summary must not include filling / previewing time.
+        with patch("main.time.monotonic", return_value=200.0):
+            self.assertAlmostEqual(runner.open_elapsed_seconds, 3.5)
+
+    def test_open_duration_is_frozen_even_when_open_times_out(self):
+        cfg = Config("https://cubing-tw.net/event/Test", "2020ABCD01",
+                     "2000", "1", "1", "test@example.invalid")
+        runner = Runner(object(), cfg)
+
+        def fail_open(_url):
+            runner.open_started_at = 20.0
+            runner.open_requests = 2
+            raise RegistrationError("OPEN", "REGISTRATION_NOT_OPEN_BEFORE_TIMEOUT")
+
+        with (patch.object(runner, "await_open", side_effect=fail_open),
+              patch("main.time.monotonic", return_value=25.25)):
+            with self.assertRaises(RegistrationError) as exc:
+                runner.run("https://cubing-tw.net/event/Test/registration")
+        self.assertEqual(exc.exception.stage, "OPEN")
+        self.assertAlmostEqual(runner.open_elapsed_seconds, 5.25)
+        self.assertEqual(runner.open_requests, 2)
 
     def test_api_failure_logs_only_numeric_http_status(self):
         for status in (401, 403, 429, 500):
