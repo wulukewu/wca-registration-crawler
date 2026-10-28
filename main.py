@@ -60,6 +60,7 @@ class Runner:
         self.cfg = cfg
         self.stage = "OPEN"
         self.open_started_at = None
+        self.open_elapsed_seconds = None
         self.open_requests = 0
 
     def _open_get(self, url: str) -> None:
@@ -328,7 +329,16 @@ class Runner:
             return Outcome.UNKNOWN  # submission might have succeeded; never blindly retry
 
     def run(self, url: str) -> Outcome:
-        if self.await_open(url) is False:
+        try:
+            open_result = self.await_open(url)
+        finally:
+            # Freeze OPEN duration before filling, Preview or Send.
+            # A timeout/exception still records the actual waiting duration.
+            if self.open_started_at is not None:
+                self.open_elapsed_seconds = round(
+                    max(0.0, time.monotonic() - self.open_started_at), 2
+                )
+        if open_result is False:
             return Outcome.NOT_SELECTED
         self.stage = "COORDINATE"
         if not claim_registration(self.cfg.runner_count):
@@ -356,11 +366,9 @@ def write_summary(outcome: Outcome, stage: str, code: str, started: float,
         "duration_seconds": round(time.monotonic() - started, 2),
         "timestamp_utc": datetime.now(timezone.utc).isoformat(),
     }
-    if runner is not None and runner.open_started_at is not None:
+    if runner is not None and runner.open_elapsed_seconds is not None:
         result["open_requests"] = runner.open_requests
-        result["open_elapsed_seconds"] = round(
-            max(0.0, time.monotonic() - runner.open_started_at), 2
-        )
+        result["open_elapsed_seconds"] = runner.open_elapsed_seconds
     Path(os.getenv("RESULT_PATH", "run-result.json")).write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
     summary = os.getenv("GITHUB_STEP_SUMMARY")
     if summary:
